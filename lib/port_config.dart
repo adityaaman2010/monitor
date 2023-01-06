@@ -1,3 +1,5 @@
+import 'package:crc/crc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
 
@@ -12,6 +14,7 @@ class PortConfig extends StatefulWidget {
 
 class _PortConfigState extends State<PortConfig> {
   var availablePorts = [];
+  bool isOpen = false;
   static String title = 'Port Configuration';
   final _formKeyRs = GlobalKey<FormState>();
   final _formKeyEthernet = GlobalKey<FormState>();
@@ -24,18 +27,40 @@ class _PortConfigState extends State<PortConfig> {
 
   void initPorts() {
     setState(() => availablePorts = SerialPort.availablePorts);
+    final name = SerialPort.availablePorts.first;
+    final port = SerialPort(name);
+    final configu = SerialPortConfig();
+    configu.baudRate = 9600;
+    configu.bits = 7;
+    configu.parity = 2;
+    configu.stopBits = 1;
+    port.config = configu;
+    try {
+      if (!isOpen) {
+        print('****************');
+        print("going on port open");
+        isOpen = port.openReadWrite();
+      }
+      print(port.write(Helper.convertStringToUint8List(':01031096000155\r\n')));
+      var data = port.read(15, timeout: 10000);
+      var x = Helper.convertUint8ListToString(data);
+      print('received: $x');
+    } catch (e) {
+      print('error in serial port');
+      print(e);
+      print(SerialPort.lastError);
+      print('=================');
+      port.close();
+    }
   }
 
   void _saveForm() {
-    print(availablePorts);
     if (_formKeyRs.currentState!.validate()) {
       _formKeyRs.currentState!.save();
     }
     if (_formKeyEthernet.currentState!.validate()) {
       _formKeyEthernet.currentState!.save();
     }
-    print(rsFormField);
-    print(ethernetField);
   }
 
   void nextPage() {
@@ -44,8 +69,6 @@ class _PortConfigState extends State<PortConfig> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> ap = SerialPort.availablePorts;
-    print(ap);
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -114,6 +137,10 @@ class _PortConfigState extends State<PortConfig> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: initPorts,
+        child: const Icon(Icons.refresh),
+      ),
     );
   }
 
@@ -126,10 +153,9 @@ class _PortConfigState extends State<PortConfig> {
   var rsFormField = [
     {'label': 'Com Port', 'key': 'com_port', 'value': ''},
     {'label': 'Baud Rate', 'key': 'baud_rate', 'value': ''},
-    {'label': 'Data', 'key': 'data', 'value': ''},
+    {'label': 'Word Length', 'key': 'word_length', 'value': ''},
     {'label': 'Parity', 'key': 'parity', 'value': ''},
     {'label': 'Stop Bits', 'key': 'stop_bits', 'value': ''},
-    {'label': 'Flow Control', 'key': 'flow_control', 'value': ''},
   ];
 
   var ethernetField = [
