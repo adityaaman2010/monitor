@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monitor/helper.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -22,7 +23,11 @@ class _LoginState extends State<Login> {
     if (userName == 'admin' && passwordValue == 'admin@123') {
       Navigator.pushReplacementNamed(context, '/port_config');
     } else {
-      _showError();
+      Helper.showError(
+        context,
+        'Invalid Credentials',
+        'Username or password is wrong',
+      );
     }
   }
 
@@ -39,33 +44,6 @@ class _LoginState extends State<Login> {
         passwordValue = password.text;
       });
     });
-  }
-
-  Future<void> _showError() async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // user must tap button!
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Invalid Credentials'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: const <Widget>[
-                Text('Username or password is wrong'),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Ok'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override

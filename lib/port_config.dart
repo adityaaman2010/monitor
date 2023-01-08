@@ -1,7 +1,6 @@
-import 'package:crc/crc.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
+import 'package:localstorage/localstorage.dart';
 
 import 'helper.dart';
 
@@ -13,58 +12,115 @@ class PortConfig extends StatefulWidget {
 }
 
 class _PortConfigState extends State<PortConfig> {
+  final LocalStorage storage = LocalStorage(Helper.storageName);
   var availablePorts = [];
-  bool isOpen = false;
+  bool isOpen = false, isLoadedStorage = false;
   static String title = 'Port Configuration';
   final _formKeyRs = GlobalKey<FormState>();
   final _formKeyEthernet = GlobalKey<FormState>();
+
+  void loadPortConfig() async {
+    await storage.ready;
+    var x = storage.getItem(Helper.rsKey) ?? [];
+    var y = storage.getItem(Helper.ethKey) ?? [];
+    if (x.isEmpty == false) {
+      rsFormField[0]['value'] = Helper.getValueOfKey(x, 'com_port');
+      rsFormField[1]['value'] = Helper.getValueOfKey(x, 'baud_rate');
+      rsFormField[2]['value'] = Helper.getValueOfKey(x, 'word_length');
+      rsFormField[3]['value'] =
+          rsFormField[4]['value'] = Helper.getValueOfKey(x, 'stop_bits');
+    }
+    if (y.isEmpty == false) {
+      ethernetField[0]['value'] = Helper.getValueOfKey(y, 'ip_address');
+      ethernetField[1]['value'] = Helper.getValueOfKey(y, 'service_port');
+    }
+    setState(() {
+      isLoadedStorage = true;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     initPorts();
+    loadPortConfig();
   }
 
-  void initPorts() {
+  void initPorts() async {
     setState(() => availablePorts = SerialPort.availablePorts);
-    final name = SerialPort.availablePorts.first;
-    final port = SerialPort(name);
-    final configu = SerialPortConfig();
-    configu.baudRate = 9600;
-    configu.bits = 7;
-    configu.parity = 2;
-    configu.stopBits = 1;
-    port.config = configu;
-    try {
-      if (!isOpen) {
-        print('****************');
-        print("going on port open");
-        isOpen = port.openReadWrite();
-      }
-      print(port.write(Helper.convertStringToUint8List(':01031096000155\r\n')));
-      var data = port.read(15, timeout: 10000);
-      var x = Helper.convertUint8ListToString(data);
-      print('received: $x');
-    } catch (e) {
-      print('error in serial port');
-      print(e);
-      print(SerialPort.lastError);
-      print('=================');
-      port.close();
-    }
+    // final name = SerialPort.availablePorts.first;
+    // var port = SerialPort(name);
+    // final configu = SerialPortConfig();
+    // configu.baudRate = 9600;
+    // configu.bits = 7;
+    // configu.parity = 2;
+    // configu.stopBits = 1;
+    // port.config = configu;
+    // SerialPortReader reader = SerialPortReader(port);
+    // try {
+    //   port.openReadWrite();
+    //   print(Helper.getVoltagReadCommand());
+    //   var y =
+    //       port.write(Helper.convertStringToUint8List(':0106109C00004D\r\n'));
+    //   print(y);
+    //   reader.stream.listen((data) {
+    //     var x = Helper.convertUint8ListToString(data);
+    //     reader.close();
+    //     port.close();
+    //     print('received is $x');
+    //   });
+    // } catch (e) {
+    //   print('*****************');
+    //   port.close();
+    //   print('error in serial port');
+    //   print(e);
+    //   print('=================');
+    // }
   }
 
-  void _saveForm() {
+  void _saveForm() async {
     if (_formKeyRs.currentState!.validate()) {
-      _formKeyRs.currentState!.save();
+      var saveRs = false;
+      if ((rsFormField[0]['value'] == '' && availablePorts.isEmpty == false)) {
+        rsFormField[0]['value'] = availablePorts[0];
+        saveRs = true;
+      } else if (rsFormField[0]['value'] != '') {
+        saveRs = true;
+      }
+      if (saveRs) {
+        _formKeyRs.currentState!.save();
+        await storage.setItem(Helper.rsKey, rsFormField);
+        Helper.showToast(
+          context,
+          'Saved RS 232 Configuration',
+        );
+      }
     }
     if (_formKeyEthernet.currentState!.validate()) {
       _formKeyEthernet.currentState!.save();
+      await storage.setItem(Helper.ethKey, ethernetField);
+      Helper.showToast(
+        context,
+        'Saved Ethernet Configuration',
+      );
     }
   }
 
   void nextPage() {
-    Navigator.pushNamed(context, '/das_setting');
+    var x = storage.getItem(Helper.rsKey) ?? [];
+    var y = storage.getItem(Helper.ethKey) ?? [];
+    if (x.isEmpty && y.isEmpty) {
+      Helper.showError(
+        context,
+        'Incomplete Form',
+        'Please fill in atleast one connection details',
+      );
+    } else {
+      Navigator.pushNamed(
+        context,
+        '/das_setting',
+      );
+    }
   }
 
   @override
@@ -80,10 +136,12 @@ class _PortConfigState extends State<PortConfig> {
           children: [
             Expanded(
               child: Row(
-                children: [
-                  getRsColumn(),
-                  getEthernetColumn(),
-                ],
+                children: isLoadedStorage
+                    ? [
+                        getRsColumn(),
+                        getEthernetColumn(),
+                      ]
+                    : [],
               ),
             ),
             Row(
@@ -131,7 +189,7 @@ class _PortConfigState extends State<PortConfig> {
                   ),
                   onPressed: nextPage,
                   child: const Text('Next'),
-                )
+                ),
               ],
             ),
           ],
@@ -154,7 +212,7 @@ class _PortConfigState extends State<PortConfig> {
     {'label': 'Com Port', 'key': 'com_port', 'value': ''},
     {'label': 'Baud Rate', 'key': 'baud_rate', 'value': ''},
     {'label': 'Word Length', 'key': 'word_length', 'value': ''},
-    {'label': 'Parity', 'key': 'parity', 'value': ''},
+    {'label': 'Parity', 'key': 'parity', 'value': 0},
     {'label': 'Stop Bits', 'key': 'stop_bits', 'value': ''},
   ];
 
@@ -184,22 +242,101 @@ class _PortConfigState extends State<PortConfig> {
                   constraints: const BoxConstraints(maxWidth: 250.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: rsFormField
-                        .map((e) => TextFormField(
-                              onSaved: (value) {
-                                e["value"] = value!;
-                              },
-                              decoration: InputDecoration(
-                                labelText: e["label"],
+                    children: rsFormField.map((e) {
+                      if (e['key'] == 'com_port') {
+                        if (availablePorts.isEmpty) {
+                          return const Text('Not available');
+                        } else {
+                          return Padding(
+                            padding: const EdgeInsets.all(0),
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Com Port',
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter some text';
-                                }
-                                return null;
-                              },
-                            ))
-                        .toList(),
+                              child: ButtonTheme(
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.padded,
+                                  child: DropdownButton<String>(
+                                    value: availablePorts[0],
+                                    icon: const Icon(Icons.arrow_downward),
+                                    elevation: 16,
+                                    style: const TextStyle(
+                                        color: Colors.deepPurple),
+                                    underline: null,
+                                    onChanged: (String? value) {
+                                      // This is called when the user selects an item.
+                                      setState(() {
+                                        e["value"] = value!;
+                                      });
+                                    },
+                                    items: availablePorts
+                                        .map<DropdownMenuItem<String>>(
+                                            (dynamic value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                  )),
+                            ),
+                          );
+                        }
+                      } else if (e['key'] == 'parity') {
+                        return Padding(
+                          padding: const EdgeInsets.all(0),
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Parity',
+                            ),
+                            child: ButtonTheme(
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.padded,
+                              child: DropdownButton<String>(
+                                value: e["value"].toString(),
+                                icon: const Icon(Icons.arrow_downward),
+                                elevation: 16,
+                                style:
+                                    const TextStyle(color: Colors.deepPurple),
+                                underline: null,
+                                onChanged: (String? value) {
+                                  // This is called when the user selects an item.
+                                  setState(() {
+                                    e["value"] = value!;
+                                  });
+                                },
+                                items: [0, 1, 2]
+                                    .map<DropdownMenuItem<String>>((int value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value.toString(),
+                                    child: Text(
+                                      value == 0
+                                          ? 'None'
+                                          : (value == 1 ? 'Odd' : 'Even'),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        );
+                      } else {
+                        return TextFormField(
+                          initialValue: e['value'].toString(),
+                          onSaved: (value) {
+                            e["value"] = value!;
+                          },
+                          decoration: InputDecoration(
+                            labelText: e["label"].toString(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter some text';
+                            }
+                            return null;
+                          },
+                        );
+                      }
+                    }).toList(),
                   ),
                 ),
               ),
@@ -229,6 +366,7 @@ class _PortConfigState extends State<PortConfig> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: ethernetField
                       .map((e) => TextFormField(
+                            initialValue: e["value"],
                             onSaved: (value) {
                               e["value"] = value!;
                             },

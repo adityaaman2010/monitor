@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:localstorage/localstorage.dart';
 import 'helper.dart';
 
 class DasSetting extends StatefulWidget {
@@ -9,13 +10,41 @@ class DasSetting extends StatefulWidget {
 }
 
 class _DasSettingState extends State<DasSetting> {
+  final LocalStorage storage = LocalStorage(Helper.storageName);
   final _dasForm = GlobalKey<FormState>();
+  dynamic dasData = [];
+  bool isLoadedStorage = false;
 
-  void _saveForm() {
+  void loadPortConfig() async {
+    await storage.ready;
+    dasData = storage.getItem(Helper.dasKey) ?? [];
+    if (dasData.isEmpty == false) {
+      dasFormField[0]['value'] = Helper.getValueOfKey(dasData, 'log_frequency');
+      dasFormField[1]['value'] = Helper.getValueOfKey(dasData, 'log_path');
+      dasFormField[2]['value'] = Helper.getValueOfKey(dasData, 'log_name');
+      dasFormField[3]['value'] = Helper.getValueOfKey(dasData, 'log_type');
+    }
+    setState(() {
+      isLoadedStorage = true;
+    });
+  }
+
+  void _saveForm() async {
     if (_dasForm.currentState!.validate()) {
       _dasForm.currentState!.save();
+      await storage.setItem(Helper.dasKey, dasFormField);
+      Helper.showToast(
+        context,
+        'Saved Data Saving Configuration',
+      );
     }
-    print(dasFormField);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    loadPortConfig();
   }
 
   @override
@@ -29,7 +58,7 @@ class _DasSettingState extends State<DasSetting> {
         child: Center(
           child: Column(
             children: [
-              getDasForm(),
+              isLoadedStorage ? getDasForm() : Container(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -73,7 +102,12 @@ class _DasSettingState extends State<DasSetting> {
                       ),
                       foregroundColor: MaterialStateProperty.all(Colors.white),
                     ),
-                    onPressed: null,
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/operations',
+                      );
+                    },
                     child: const Text('Next'),
                   ),
                 ],
@@ -86,10 +120,30 @@ class _DasSettingState extends State<DasSetting> {
   }
 
   var dasFormField = [
-    {'label': 'Data Logging Frequency', 'key': 'log_frequency', 'value': ''},
-    {'label': 'Data Logging Path', 'key': 'log_path', 'value': ''},
-    {'label': 'Data Logging File Name', 'key': 'log_name', 'value': ''},
-    {'label': 'Data Logging File Type', 'key': 'log_type', 'value': ''},
+    {
+      'label': 'Data Logging Frequency',
+      'key': 'log_frequency',
+      'value': '',
+      'hint': 'Read Frequency In Seconds'
+    },
+    {
+      'label': 'Data Logging Path',
+      'key': 'log_path',
+      'value': '',
+      'hint': 'Logging Folder Path'
+    },
+    {
+      'label': 'Data Logging File Name',
+      'key': 'log_name',
+      'value': '',
+      'hint': 'Logging filename'
+    },
+    {
+      'label': 'Data Logging File Type',
+      'key': 'log_type',
+      'value': '',
+      'hint': 'Logging file extension ex: csv'
+    },
   ];
 
   Widget getDasForm() {
@@ -101,20 +155,24 @@ class _DasSettingState extends State<DasSetting> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: dasFormField
-                .map((e) => TextFormField(
-                      onSaved: (value) {
-                        e["value"] = value!;
-                      },
-                      decoration: InputDecoration(
-                        labelText: e["label"],
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter some text';
-                        }
-                        return null;
-                      },
-                    ))
+                .map(
+                  (e) => TextFormField(
+                    initialValue: e['value'],
+                    onSaved: (value) {
+                      e["value"] = value!;
+                    },
+                    decoration: InputDecoration(
+                      labelText: e["label"],
+                      hintText: e['hint'],
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter some text';
+                      }
+                      return null;
+                    },
+                  ),
+                )
                 .toList(),
           ),
         ),

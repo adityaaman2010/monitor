@@ -38,6 +38,10 @@ dependencies:
   cupertino_icons: ^1.0.2
   flutter_libserialport: ^0.3.0
   crc: ^0.0.2
+  localstorage: ^4.0.0+1
+  fluttertoast: ^8.1.2
+  csv: ^5.0.1
+  path: ^1.8.2
 
 dev_dependencies:
   flutter_test:

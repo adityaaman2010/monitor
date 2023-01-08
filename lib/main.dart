@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:monitor/log_view.dart';
 
 import 'login.dart';
 import 'port_config.dart';
 import 'das_setting.dart';
+import 'operation_window.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,9 +24,11 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         // When navigating to the "/" route, build the FirstScreen widget.
-        '/': (context) => const Login(),
-        '/port_config': (context) => const PortConfig(),
+        '/login': (context) => const Login(),
+        '/': (context) => const PortConfig(),
         '/das_setting': (context) => const DasSetting(),
+        '/operations': (context) => const OperationWindow(),
+        '/log_view': (context) => const LogView(),
       },
     );
   }
