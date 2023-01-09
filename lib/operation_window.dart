@@ -103,9 +103,10 @@ class _OperationWindowState extends State<OperationWindow> {
           int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      port.config = configu;
+
       try {
         port.openReadWrite();
+        port.config = configu;
         port.write(hvPass);
         var data = port.read(18, timeout: 1000);
         var x = Helper.convertUint8ListToString(data);
@@ -142,9 +143,9 @@ class _OperationWindowState extends State<OperationWindow> {
           int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      port.config = configu;
       try {
         port.openReadWrite();
+        port.config = configu;
         port.write(Helper.getVoltagWriteCommand(v));
         var data = port.read(18, timeout: 1000);
         var x = Helper.convertUint8ListToString(data);
@@ -177,9 +178,9 @@ class _OperationWindowState extends State<OperationWindow> {
           int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      port.config = configu;
       try {
         port.openReadWrite();
+        port.config = configu;
         port.write(Helper.getCurrentWriteCommand(c));
         var data = port.read(18, timeout: 1000);
         var x = Helper.convertUint8ListToString(data);
@@ -211,9 +212,9 @@ class _OperationWindowState extends State<OperationWindow> {
           int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      port.config = configu;
       try {
         port.openReadWrite();
+        port.config = configu;
         port.write(Helper.getVoltagReadCommand());
         var data = port.read(18, timeout: 1000);
         var x = Helper.convertUint8ListToString(data);
@@ -247,9 +248,9 @@ class _OperationWindowState extends State<OperationWindow> {
           int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      port.config = configu;
       try {
         port.openReadWrite();
+        port.config = configu;
         port.write(Helper.getCurrentReadCommand());
         var data = port.read(18, timeout: 1000);
         var x = Helper.convertUint8ListToString(data);
