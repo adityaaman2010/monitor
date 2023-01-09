@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:localstorage/localstorage.dart';
@@ -14,6 +15,8 @@ class PortConfig extends StatefulWidget {
 class _PortConfigState extends State<PortConfig> {
   final LocalStorage storage = LocalStorage(Helper.storageName);
   var availablePorts = [];
+  var port;
+  bool portInit = false;
   bool isOpen = false, isLoadedStorage = false;
   static String title = 'Port Configuration';
   final _formKeyRs = GlobalKey<FormState>();
@@ -42,40 +45,58 @@ class _PortConfigState extends State<PortConfig> {
   @override
   void initState() {
     super.initState();
-    initPorts();
+
+    // initPorts();
     loadPortConfig();
   }
 
+  initPort(String portName) {
+    port = SerialPort(portName);
+    final configu = SerialPortConfig();
+    configu.baudRate = 9600;
+    configu.bits = 7;
+    configu.parity = 2;
+    configu.stopBits = 1;
+    port.config = configu;
+    portInit = true;
+    port.openReadWrite();
+  }
+
   void initPorts() async {
+    print("in here");
+    if (!portInit) {
+      initPort("COM3");
+    }
     setState(() => availablePorts = SerialPort.availablePorts);
-    // final name = SerialPort.availablePorts.first;
-    // var port = SerialPort(name);
-    // final configu = SerialPortConfig();
-    // configu.baudRate = 9600;
-    // configu.bits = 7;
-    // configu.parity = 2;
-    // configu.stopBits = 1;
-    // port.config = configu;
+    final name = SerialPort.availablePorts.first;
+
     // SerialPortReader reader = SerialPortReader(port);
-    // try {
-    //   port.openReadWrite();
-    //   print(Helper.getVoltagReadCommand());
-    //   var y =
-    //       port.write(Helper.convertStringToUint8List(':0106109C00004D\r\n'));
-    //   print(y);
-    //   reader.stream.listen((data) {
-    //     var x = Helper.convertUint8ListToString(data);
-    //     reader.close();
-    //     port.close();
-    //     print('received is $x');
-    //   });
-    // } catch (e) {
-    //   print('*****************');
-    //   port.close();
-    //   print('error in serial port');
-    //   print(e);
-    //   print('=================');
-    // }
+    try {
+      // port.openReadWrite();
+      print(Helper.getVoltagReadCommand());
+
+      var y = port.write(Helper.getVoltagReadCommand());
+      // var y = port.write(Helper.getVoltagWriteCommand(2000));
+      print("write");
+      print(y);
+      var readd = port.read(18, timeout: 1000);
+
+      print("READ");
+      print(Helper.convertUint8ListToString(readd));
+      // port.close();
+      // reader.stream.listen((data) {
+      //   var x = Helper.convertUint8ListToString(data);
+      //   reader.close();
+      //   port.close();
+      //   print('received is $x');
+      // });
+    } catch (e) {
+      print('*****************');
+      // port.close();
+      print('error in serial port');
+      print(e);
+      print('=================');
+    }
   }
 
   void _saveForm() async {
@@ -388,5 +409,124 @@ class _PortConfigState extends State<PortConfig> {
         ),
       ),
     );
+  }
+}
+
+class SerialModbus {
+  late SerialPort port;
+  bool portInit = false;
+  bool readWriteInit = false;
+
+  Map commands = {
+    "readVoltage": "",
+    "setVoltage": "0106109B",
+    "readCurrent": "",
+    "setCurrent": "",
+    "setHVOnOff": "",
+    "writePassword": "",
+  };
+
+  SerialModbus(String comPort, int baud, int bits, int parity, int stopbits) {
+    port = SerialPort(comPort);
+    final configu = SerialPortConfig();
+    configu.baudRate = baud;
+    configu.bits = bits;
+    configu.parity = parity;
+    configu.stopBits = stopbits;
+    port.config = configu;
+    portInit = true;
+    readWriteInit = port.openReadWrite();
+  }
+
+  bool serialWrite(Uint8List data) {
+    int bytesWritten = port.write(data);
+    if (bytesWritten == data.length) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Uint8List serialRead(int bytesLength) {
+    Uint8List bytesRead = port.read(bytesLength, timeout: 1000);
+    String readChars = Helper.convertUint8ListToString(bytesRead);
+    if (checkLRCValid(readChars)) {
+      return bytesRead;
+    } else {
+      return Uint8List(0);
+    }
+  }
+
+  bool setVoltage(double voltage) {
+    var y = '';
+    if (voltage * 10 > 20000) {
+      voltage = 20000;
+      y = voltage.round().toRadixString(16).toUpperCase();
+      print("write voltage is");
+      print(y);
+    } else {
+      y = (voltage * 10).round().toRadixString(16).toUpperCase();
+      print("write voltage is");
+      print(y);
+    }
+    var x = '$commands["setVoltage"]$y';
+    var lrc = Helper.computeLRC(x);
+    var data = ':$x$lrc\r\n';
+    print(data);
+
+    var dataToSend = Helper.convertStringToUint8List(data);
+    Uint8List response = Uint8List(18);
+    if (serialWrite(dataToSend)) {
+      response = serialRead(18);
+      print(Helper.convertUint8ListToString(response));
+    }
+
+    return false;
+  }
+
+  bool setCurrent(String data) {
+    return false;
+  }
+
+  bool readVoltage() {
+    return false;
+  }
+
+  bool readCurrent() {
+    return false;
+  }
+
+  bool setHV() {
+    return false;
+  }
+
+  bool writePassword() {
+    return false;
+  }
+
+  bool checkLRCValid(String dataString) {
+    String receivedLRC =
+        dataString.substring(dataString.length - 4, dataString.length - 2);
+    if (computeLRC(dataString.substring(1, dataString.length - 4)) ==
+        receivedLRC) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  String computeLRC(String string_data) {
+    List<int> data = [];
+    for (int i = 0; i < string_data.length; i = i + 2) {
+      data.add(int.parse(string_data.substring(i, i + 2), radix: 16));
+    }
+
+    int lrc = 0; // initial value for the Modbus LRC
+    for (int i = 0; i < data.length; i++) {
+      lrc += data[i];
+    }
+    lrc = lrc & 0xff; // mask the result to 8 bits
+    lrc = (lrc ^ 0xff) + 1; // invert the bits and add 1
+    return lrc.toRadixString(16).toUpperCase();
   }
 }

@@ -93,28 +93,28 @@ class _OperationWindowState extends State<OperationWindow> {
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
       port.config = configu;
-      try {
-        port.openReadWrite();
-        var reader = SerialPortReader(port);
-        port.write(Helper.getVoltagReadCommand());
-        await for (var data in reader.stream) {
-          var x = Helper.convertUint8ListToString(data);
-          reader.close();
-          port.close();
-          return Helper.readValueFromHex(x, false);
-        }
-      } catch (e) {
-        print(e);
-        Helper.showToast(
-          context,
-          'Error in connecting with serial port.',
-          isError: true,
-        );
-        if (port.isOpen) {
-          port.close();
-        }
-        return '0.0 v';
-      }
+      //   try {
+      //     port.openReadWrite();
+      //     var reader = SerialPortReader(port);
+      //     port.write(Helper.getVoltagReadCommand());
+      //     await for (var data in reader.stream) {
+      //       var x = Helper.convertUint8ListToString(data);
+      //       reader.close();
+      //       port.close();
+      //       return Helper.readValueFromHex(x, false);
+      //     }
+      //   } catch (e) {
+      //     print(e);
+      //     Helper.showToast(
+      //       context,
+      //       'Error in connecting with serial port.',
+      //       isError: true,
+      //     );
+      //     if (port.isOpen) {
+      //       port.close();
+      //     }
+      //     return '0.0 v';
+      //   }
     }
     return '0.0 v';
   }
@@ -132,28 +132,28 @@ class _OperationWindowState extends State<OperationWindow> {
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
       port.config = configu;
-      try {
-        port.openReadWrite();
-        var reader = SerialPortReader(port);
-        port.write(Helper.getCurrentReadCommand());
-        await for (var data in reader.stream) {
-          var x = Helper.convertUint8ListToString(data);
-          reader.close();
-          port.close();
-          return Helper.readValueFromHex(x, true);
-        }
-      } catch (e) {
-        print(e);
-        Helper.showToast(
-          context,
-          'Error in connecting with serial port.',
-          isError: true,
-        );
-        if (port.isOpen) {
-          port.close();
-        }
-        return '0.0 A';
-      }
+      //   try {
+      //     port.openReadWrite();
+      //     var reader = SerialPortReader(port);
+      //     port.write(Helper.getCurrentReadCommand());
+      //     await for (var data in reader.stream) {
+      //       var x = Helper.convertUint8ListToString(data);
+      //       reader.close();
+      //       port.close();
+      //       return Helper.readValueFromHex(x, true);
+      //     }
+      //   } catch (e) {
+      //     print(e);
+      //     Helper.showToast(
+      //       context,
+      //       'Error in connecting with serial port.',
+      //       isError: true,
+      //     );
+      //     if (port.isOpen) {
+      //       port.close();
+      //     }
+      //     return '0.0 A';
+      //   }
     }
     return '0.0 A';
   }

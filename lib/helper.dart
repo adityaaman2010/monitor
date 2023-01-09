@@ -166,10 +166,25 @@ class Helper {
     // );
   }
 
+  static String computeLRC(String string_data) {
+    List<int> data = [];
+    for (int i = 0; i < string_data.length; i = i + 2) {
+      data.add(int.parse(string_data.substring(i, i + 2), radix: 16));
+    }
+
+    int lrc = 0; // initial value for the Modbus LRC
+    for (int i = 0; i < data.length; i++) {
+      lrc += data[i];
+    }
+    lrc = lrc & 0xff; // mask the result to 8 bits
+    lrc = (lrc ^ 0xff) + 1; // invert the bits and add 1
+    return lrc.toRadixString(16).toUpperCase();
+  }
+
   static Uint8List getVoltagReadCommand() {
-    var x = '010310960002';
-    var crc = Helper.computeCRC(x);
-    var data = ':$x$crc\r\n';
+    var x = '010310960001';
+    var lrc = Helper.computeLRC(x);
+    var data = ':$x$lrc\r\n';
     print(data);
     return Helper.convertStringToUint8List(data);
   }
@@ -186,12 +201,16 @@ class Helper {
     var y = '';
     if (voltage * 10 > 20000) {
       voltage = 20000;
-      y = voltage.round().toRadixString(16);
+      y = voltage.round().toRadixString(16).toUpperCase();
+      print("write voltage is");
+      print(y);
     } else {
-      y = (voltage * 10).round().toRadixString(16);
+      y = (voltage * 10).round().toRadixString(16).toUpperCase();
+      print("write voltage is");
+      print(y);
     }
-    var x = '0106109C$y';
-    var crc = Helper.computeCRC(x);
+    var x = '0106109B$y';
+    var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';
     print(data);
     return Helper.convertStringToUint8List(data);
