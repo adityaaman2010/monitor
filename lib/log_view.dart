@@ -131,6 +131,10 @@ class _LogViewState extends State<LogView> {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: getPreviousSavedFile,
+        child: const Icon(Icons.refresh),
+      ),
     );
   }
 }

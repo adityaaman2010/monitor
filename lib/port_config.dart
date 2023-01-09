@@ -63,40 +63,40 @@ class _PortConfigState extends State<PortConfig> {
   }
 
   void initPorts() async {
-    print("in here");
-    if (!portInit) {
-      initPort("COM3");
-    }
+    // print("in here");
+    // if (!portInit) {
+    //   initPort("COM3");
+    // }
     setState(() => availablePorts = SerialPort.availablePorts);
-    final name = SerialPort.availablePorts.first;
+    // final name = SerialPort.availablePorts.first;
 
     // SerialPortReader reader = SerialPortReader(port);
-    try {
-      // port.openReadWrite();
-      print(Helper.getVoltagReadCommand());
+    // try {
+    //   // port.openReadWrite();
+    //   print(Helper.getVoltagReadCommand());
 
-      var y = port.write(Helper.getVoltagReadCommand());
-      // var y = port.write(Helper.getVoltagWriteCommand(2000));
-      print("write");
-      print(y);
-      var readd = port.read(18, timeout: 1000);
+    //   var y = port.write(Helper.getVoltagReadCommand());
+    //   // var y = port.write(Helper.getVoltagWriteCommand(2000));
+    //   print("write");
+    //   print(y);
+    //   var readd = port.read(18, timeout: 1000);
 
-      print("READ");
-      print(Helper.convertUint8ListToString(readd));
-      // port.close();
-      // reader.stream.listen((data) {
-      //   var x = Helper.convertUint8ListToString(data);
-      //   reader.close();
-      //   port.close();
-      //   print('received is $x');
-      // });
-    } catch (e) {
-      print('*****************');
-      // port.close();
-      print('error in serial port');
-      print(e);
-      print('=================');
-    }
+    //   print("READ");
+    //   print(Helper.convertUint8ListToString(readd));
+    //   // port.close();
+    //   // reader.stream.listen((data) {
+    //   //   var x = Helper.convertUint8ListToString(data);
+    //   //   reader.close();
+    //   //   port.close();
+    //   //   print('received is $x');
+    //   // });
+    // } catch (e) {
+    //   print('*****************');
+    //   // port.close();
+    //   print('error in serial port');
+    //   print(e);
+    //   print('=================');
+    // }
   }
 
   void _saveForm() async {

@@ -46,10 +46,14 @@ class _OperationWindowState extends State<OperationWindow> {
     updateOperationValue();
   }
 
-  void updateOperationValue() async {
+  Future<void> updateOperationValue() async {
     try {
-      voltage = await getVoltage();
-      current = await getCurrent();
+      var v = await getVoltage();
+      var c = await getCurrent();
+      setState(() {
+        voltage = v;
+        current = c;
+      });
     } catch (e) {}
   }
 
@@ -77,6 +81,121 @@ class _OperationWindowState extends State<OperationWindow> {
         context,
         'Saved Operational Settings',
       );
+      await setCurrent();
+      await setVoltage();
+      await setHv();
+      updateOperationValue();
+    }
+  }
+
+  Future<void> setHv() async {
+    bool on = operationFormField[0]['value'].toString() == "on" ? true : false;
+    var hvCmd = Helper.getHvOnOffCommand(on);
+    var hvPass = Helper.getHvPassword();
+    if (rsData.isEmpty == false) {
+      port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
+      final configu = SerialPortConfig();
+      configu.baudRate =
+          int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
+      configu.bits =
+          int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
+      configu.parity =
+          int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
+      configu.stopBits =
+          int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
+      port.config = configu;
+      try {
+        port.openReadWrite();
+        port.write(hvPass);
+        var data = port.read(18, timeout: 1000);
+        var x = Helper.convertUint8ListToString(data);
+        print('Read return after password set is $x');
+        port.write(hvCmd);
+        data = port.read(18, timeout: 1000);
+        x = Helper.convertUint8ListToString(data);
+        print('Read return after hv on off $x');
+        port.close();
+      } catch (e) {
+        print(e);
+        Helper.showToast(
+          context,
+          'Error in connecting with serial port.',
+          isError: true,
+        );
+        if (port.isOpen) {
+          port.close();
+        }
+      }
+    }
+  }
+
+  Future<void> setVoltage() async {
+    var v = double.parse(operationFormField[1]['value'].toString());
+    if (rsData.isEmpty == false) {
+      port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
+      final configu = SerialPortConfig();
+      configu.baudRate =
+          int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
+      configu.bits =
+          int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
+      configu.parity =
+          int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
+      configu.stopBits =
+          int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
+      port.config = configu;
+      try {
+        port.openReadWrite();
+        port.write(Helper.getVoltagWriteCommand(v));
+        var data = port.read(18, timeout: 1000);
+        var x = Helper.convertUint8ListToString(data);
+        print('Read return after voltage write is $x');
+        port.close();
+      } catch (e) {
+        print(e);
+        Helper.showToast(
+          context,
+          'Error in connecting with serial port.',
+          isError: true,
+        );
+        if (port.isOpen) {
+          port.close();
+        }
+      }
+    }
+  }
+
+  Future<void> setCurrent() async {
+    var c = double.parse(operationFormField[2]['value'].toString());
+    if (rsData.isEmpty == false) {
+      port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
+      final configu = SerialPortConfig();
+      configu.baudRate =
+          int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
+      configu.bits =
+          int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
+      configu.parity =
+          int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
+      configu.stopBits =
+          int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
+      port.config = configu;
+      try {
+        port.openReadWrite();
+        port.write(Helper.getCurrentWriteCommand(c));
+        var data = port.read(18, timeout: 1000);
+        var x = Helper.convertUint8ListToString(data);
+        print('Read return after current write is $x');
+        port.close();
+      } catch (e) {
+        print(e);
+        Helper.showToast(
+          context,
+          'Error in connecting with serial port.',
+          isError: true,
+        );
+        if (port.isOpen) {
+          port.close();
+        }
+      }
     }
   }
 
@@ -93,28 +212,25 @@ class _OperationWindowState extends State<OperationWindow> {
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
       port.config = configu;
-      //   try {
-      //     port.openReadWrite();
-      //     var reader = SerialPortReader(port);
-      //     port.write(Helper.getVoltagReadCommand());
-      //     await for (var data in reader.stream) {
-      //       var x = Helper.convertUint8ListToString(data);
-      //       reader.close();
-      //       port.close();
-      //       return Helper.readValueFromHex(x, false);
-      //     }
-      //   } catch (e) {
-      //     print(e);
-      //     Helper.showToast(
-      //       context,
-      //       'Error in connecting with serial port.',
-      //       isError: true,
-      //     );
-      //     if (port.isOpen) {
-      //       port.close();
-      //     }
-      //     return '0.0 v';
-      //   }
+      try {
+        port.openReadWrite();
+        port.write(Helper.getVoltagReadCommand());
+        var data = port.read(18, timeout: 1000);
+        var x = Helper.convertUint8ListToString(data);
+        port.close();
+        return Helper.readValueFromHex(x, false);
+      } catch (e) {
+        print(e);
+        Helper.showToast(
+          context,
+          'Error in connecting with serial port.',
+          isError: true,
+        );
+        if (port.isOpen) {
+          port.close();
+        }
+        return '0.0 v';
+      }
     }
     return '0.0 v';
   }
@@ -132,28 +248,25 @@ class _OperationWindowState extends State<OperationWindow> {
       configu.stopBits =
           int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
       port.config = configu;
-      //   try {
-      //     port.openReadWrite();
-      //     var reader = SerialPortReader(port);
-      //     port.write(Helper.getCurrentReadCommand());
-      //     await for (var data in reader.stream) {
-      //       var x = Helper.convertUint8ListToString(data);
-      //       reader.close();
-      //       port.close();
-      //       return Helper.readValueFromHex(x, true);
-      //     }
-      //   } catch (e) {
-      //     print(e);
-      //     Helper.showToast(
-      //       context,
-      //       'Error in connecting with serial port.',
-      //       isError: true,
-      //     );
-      //     if (port.isOpen) {
-      //       port.close();
-      //     }
-      //     return '0.0 A';
-      //   }
+      try {
+        port.openReadWrite();
+        port.write(Helper.getCurrentReadCommand());
+        var data = port.read(18, timeout: 1000);
+        var x = Helper.convertUint8ListToString(data);
+        port.close();
+        return Helper.readValueFromHex(x, true);
+      } catch (e) {
+        print(e);
+        Helper.showToast(
+          context,
+          'Error in connecting with serial port.',
+          isError: true,
+        );
+        if (port.isOpen) {
+          port.close();
+        }
+        return '0.0 A';
+      }
     }
     return '0.0 A';
   }
@@ -198,16 +311,34 @@ class _OperationWindowState extends State<OperationWindow> {
       if (csvDataTOWrite.isEmpty) {
         var x = await getPreviousSavedFile();
         if (x.isEmpty) {
-          csvDataTOWrite.add(['firstname', 'lastname', 'random']);
+          csvDataTOWrite.add([
+            'Date',
+            'Time',
+            'Output Voltsge',
+            'Output Current',
+          ]);
         } else {
           csvDataTOWrite = x;
         }
       }
-      csvDataTOWrite.add([
-        Helper.getRandomString(10),
-        Helper.getRandomString(10),
-        Helper.getRandomString(10)
-      ]);
+      var c = await getCurrent();
+      var v = await getVoltage();
+      setState(() {
+        current = c;
+        voltage = v;
+      });
+      var dateTime = DateTime.now();
+      var day = dateTime.year.toString() +
+          '-' +
+          dateTime.month.toString() +
+          '-' +
+          dateTime.day.toString();
+      var time = dateTime.hour.toString() +
+          ':' +
+          dateTime.minute.toString() +
+          ':' +
+          dateTime.second.toString();
+      csvDataTOWrite.add([day, time, v, c]);
       await saveLoggingFile(csvDataTOWrite);
       await Future.delayed(Duration(seconds: int.parse(dasData[0]['value'])));
     }

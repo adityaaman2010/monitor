@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:modbus/modbus.dart' as modbus;
 
 extension IntToString on int {
   String toHex() => '0x${toRadixString(16)}';
@@ -185,15 +186,13 @@ class Helper {
     var x = '010310960001';
     var lrc = Helper.computeLRC(x);
     var data = ':$x$lrc\r\n';
-    print(data);
     return Helper.convertStringToUint8List(data);
   }
 
   static Uint8List getCurrentReadCommand() {
-    var x = '01031097000254';
-    var crc = Helper.computeCRC(x);
+    var x = '010310970001';
+    var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';
-    print(data);
     return Helper.convertStringToUint8List(data);
   }
 
@@ -202,14 +201,14 @@ class Helper {
     if (voltage * 10 > 20000) {
       voltage = 20000;
       y = voltage.round().toRadixString(16).toUpperCase();
-      print("write voltage is");
-      print(y);
     } else {
       y = (voltage * 10).round().toRadixString(16).toUpperCase();
-      print("write voltage is");
-      print(y);
     }
-    var x = '0106109B$y';
+    var pads = 4 - (y.length);
+    for (var i = 0; i < pads; i++) {
+      y = '0$y';
+    }
+    var x = '0106109B$y'.toUpperCase();
     var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';
     print(data);
@@ -224,15 +223,25 @@ class Helper {
     } else {
       y = (current * 10).round().toRadixString(16);
     }
-    var x = '0106109C$y';
-    var crc = Helper.computeCRC(x);
+    var pads = 4 - (y.length);
+    for (var i = 0; i < pads; i++) {
+      y = '0$y';
+    }
+    var x = '0106109C$y'.toUpperCase();
+    var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';
     print(data);
     return Helper.convertStringToUint8List(data);
   }
 
-  static Uint8List getHvOnOffCommand() {
-    return Helper.convertStringToUint8List(':0106109A000151\r\n');
+  static Uint8List getHvPassword() {
+    return Helper.convertStringToUint8List(':0110109D0002040106200015\r\n');
+  }
+
+  static Uint8List getHvOnOffCommand(bool on) {
+    var x = on ? '0106109A0001' : '0106109A0000';
+    var crc = Helper.computeLRC(x);
+    return Helper.convertStringToUint8List(':$x$crc\r\n');
   }
 
   static dynamic readValueFromHex(String hex, bool isCurrent,
@@ -241,10 +250,11 @@ class Helper {
     try {
       List<String> x = hex.split('');
       var valueHex = '';
-      for (var i = 8; i < 12; i++) {
+      for (var i = 9; i < 13; i++) {
         valueHex += x[i];
       }
       var result = int.parse(valueHex, radix: 16) / 10;
+      print('reading packet helper - 246 ==> $hex id equal to $result');
       return returnInt ? result : '$result$postFix';
     } catch (e) {
       return returnInt ? 0 : '0.0$postFix';
@@ -257,5 +267,34 @@ class Helper {
     Random _rnd = Random();
     return String.fromCharCodes(Iterable.generate(
         length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
+  }
+
+  static void initethernet(String ip, int port) async {
+    var client = modbus.createTcpClient(
+      ip,
+      port: port,
+      mode: modbus.ModbusMode.rtu,
+      unitId: 1,
+    );
+
+    try {
+      await client.connect();
+
+      var slaveIdResponse = await client.reportSlaveId();
+
+      StringBuffer sb = StringBuffer();
+      slaveIdResponse.forEach((f) {
+        sb.write(f.toRadixString(16).padLeft(2, '0'));
+        sb.write(" ");
+      });
+      print("Slave ID: " + sb.toString());
+      // await client.writeSingleRegister(4245, 1234);
+      var registers = await client.readHoldingRegisters(4245, 1);
+      for (int i = 0; i < registers.length; i++) {
+        print("REG_I[${i}]: " + registers.elementAt(i).toString());
+      }
+    } finally {
+      client.close();
+    }
   }
 }
