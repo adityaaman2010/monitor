@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:csv/csv.dart';
 import 'package:path/path.dart' as Path;
+import 'package:modbus/modbus.dart' as modbus;
 
 import 'helper.dart';
 
@@ -23,6 +25,7 @@ class _OperationWindowState extends State<OperationWindow> {
   dynamic rsData = [];
   dynamic ethData = [];
   dynamic dasData = [];
+  dynamic shouldUseEth = {};
   dynamic operationData = [];
   final _operationForm = GlobalKey<FormState>();
   String voltage = '', current = '', highVotage = 'Off';
@@ -39,6 +42,7 @@ class _OperationWindowState extends State<OperationWindow> {
     rsData = storage.getItem(Helper.rsKey) ?? [];
     ethData = storage.getItem(Helper.ethKey) ?? [];
     dasData = storage.getItem(Helper.dasKey) ?? [];
+    shouldUseEth = storage.getItem(Helper.useEthKey) ?? {};
     operationData = storage.getItem(Helper.operationKey) ?? [];
     setState(() {
       isLoadedStorage = true;
@@ -88,185 +92,245 @@ class _OperationWindowState extends State<OperationWindow> {
     }
   }
 
-  Future<void> setHv() async {
-    bool on = operationFormField[0]['value'].toString() == "on" ? true : false;
-    var hvCmd = Helper.getHvOnOffCommand(on);
-    var hvPass = Helper.getHvPassword();
-    if (rsData.isEmpty == false) {
-      port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
-      final configu = SerialPortConfig();
-      configu.baudRate =
-          int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
-      configu.bits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
-      configu.parity =
-          int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
-      configu.stopBits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
+  void openPort() {
+    port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
+    final configu = SerialPortConfig();
+    configu.baudRate =
+        int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
+    configu.bits =
+        int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
+    configu.parity = int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
+    configu.stopBits =
+        int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
+    port.openReadWrite();
+    port.config = configu;
+  }
 
-      try {
-        port.openReadWrite();
-        port.config = configu;
-        port.write(hvPass);
-        var data = port.read(18, timeout: 1000);
-        var x = Helper.convertUint8ListToString(data);
-        print('Read return after password set is $x');
-        port.write(hvCmd);
-        data = port.read(18, timeout: 1000);
-        x = Helper.convertUint8ListToString(data);
-        print('Read return after hv on off $x');
-        port.close();
-      } catch (e) {
-        print(e);
-        Helper.showToast(
-          context,
-          'Error in connecting with serial port.',
-          isError: true,
-        );
-        if (port.isOpen) {
+  Future<void> setHv() async {
+    if (shouldUseEth['value'] == true) {
+      setHvEth();
+    } else {
+      bool on =
+          operationFormField[0]['value'].toString() == "on" ? true : false;
+      var hvCmd = Helper.getHvOnOffCommand(on);
+      var hvPass = Helper.getHvPassword();
+      if (rsData.isEmpty == false) {
+        openPort();
+        try {
+          port.write(hvPass);
+          var data = port.read(18, timeout: 1000);
+          var x = Helper.convertUint8ListToString(data);
+          print('Read return after password set is $x');
+          port.write(hvCmd);
+          data = port.read(18, timeout: 1000);
+          x = Helper.convertUint8ListToString(data);
+          print('Read return after hv on off $x');
           port.close();
+        } catch (e) {
+          print(e);
+          Helper.showToast(
+            context,
+            'Error in connecting with serial port.',
+            isError: true,
+          );
+          if (port.isOpen) {
+            port.close();
+          }
         }
       }
     }
+  }
+
+  Future<dynamic> useEthernet(
+    Future<dynamic> Function(modbus.ModbusClient client) callback,
+  ) async {
+    var client = Helper.getEthClient(ethData);
+    try {
+      await client.connect();
+      var slaveIdResponse = await client.reportSlaveId();
+      StringBuffer sb = StringBuffer();
+      slaveIdResponse.forEach((f) {
+        sb.write(f.toRadixString(16).padLeft(2, '0'));
+        sb.write(" ");
+      });
+      print("Slave ID: " + sb.toString());
+      return callback(client);
+    } catch (e) {
+      print(e);
+      Helper.showToast(
+        context,
+        'Error in connecting with ethernet',
+        isError: true,
+      );
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> setHvEth() async {
+    c(modbus.ModbusClient client) async {
+      int hvAction = operationFormField[0]['value'].toString() == "on" ? 1 : 0;
+      var passwordRegister = Helper.getHvRegister(isPassword: true);
+      var hvRegister = Helper.getHvRegister();
+      var x = [0x0106, 0x2000];
+      // TODO: RP handle password
+      await client.writeMultipleRegisters(
+          passwordRegister, Uint16List.fromList(x));
+      await client.writeSingleRegister(hvRegister, hvAction);
+    }
+
+    await useEthernet(c);
   }
 
   Future<void> setVoltage() async {
-    var v = double.parse(operationFormField[1]['value'].toString());
-    if (rsData.isEmpty == false) {
-      port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
-      final configu = SerialPortConfig();
-      configu.baudRate =
-          int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
-      configu.bits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
-      configu.parity =
-          int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
-      configu.stopBits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      try {
-        port.openReadWrite();
-        port.config = configu;
-        port.write(Helper.getVoltagWriteCommand(v));
-        var data = port.read(18, timeout: 1000);
-        var x = Helper.convertUint8ListToString(data);
-        print('Read return after voltage write is $x');
-        port.close();
-      } catch (e) {
-        print(e);
-        Helper.showToast(
-          context,
-          'Error in connecting with serial port.',
-          isError: true,
-        );
-        if (port.isOpen) {
+    if (shouldUseEth['value'] == true) {
+      setVoltageEth();
+    } else {
+      var v = double.parse(operationFormField[1]['value'].toString());
+      if (rsData.isEmpty == false) {
+        try {
+          port.write(Helper.getVoltagWriteCommand(v));
+          var data = port.read(18, timeout: 1000);
+          var x = Helper.convertUint8ListToString(data);
+          print('Read return after voltage write is $x');
           port.close();
+        } catch (e) {
+          print(e);
+          Helper.showToast(
+            context,
+            'Error in connecting with serial port.',
+            isError: true,
+          );
+          if (port.isOpen) {
+            port.close();
+          }
         }
       }
     }
+  }
+
+  Future<void> setVoltageEth() async {
+    c(modbus.ModbusClient client) async {
+      var v = double.parse(operationFormField[1]['value'].toString()) * 10;
+      int voltageRegister = Helper.getRegister();
+      int x = v > 20000 ? 20000 : v.round();
+      await client.writeSingleRegister(voltageRegister, x);
+    }
+
+    await useEthernet(c);
   }
 
   Future<void> setCurrent() async {
-    var c = double.parse(operationFormField[2]['value'].toString());
-    if (rsData.isEmpty == false) {
-      port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
-      final configu = SerialPortConfig();
-      configu.baudRate =
-          int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
-      configu.bits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
-      configu.parity =
-          int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
-      configu.stopBits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      try {
-        port.openReadWrite();
-        port.config = configu;
-        port.write(Helper.getCurrentWriteCommand(c));
-        var data = port.read(18, timeout: 1000);
-        var x = Helper.convertUint8ListToString(data);
-        print('Read return after current write is $x');
-        port.close();
-      } catch (e) {
-        print(e);
-        Helper.showToast(
-          context,
-          'Error in connecting with serial port.',
-          isError: true,
-        );
-        if (port.isOpen) {
+    if (shouldUseEth['value'] == true) {
+      setCurrentEth();
+    } else {
+      var c = double.parse(operationFormField[2]['value'].toString());
+      if (rsData.isEmpty == false) {
+        try {
+          port.write(Helper.getCurrentWriteCommand(c));
+          var data = port.read(18, timeout: 1000);
+          var x = Helper.convertUint8ListToString(data);
+          print('Read return after current write is $x');
           port.close();
+        } catch (e) {
+          print(e);
+          Helper.showToast(
+            context,
+            'Error in connecting with serial port.',
+            isError: true,
+          );
+          if (port.isOpen) {
+            port.close();
+          }
         }
       }
     }
+  }
+
+  Future<void> setCurrentEth() async {
+    c(modbus.ModbusClient client) async {
+      var c = double.parse(operationFormField[2]['value'].toString());
+      int currentRegister = Helper.getRegister(isVoltage: false);
+      int x = c > 60 ? 60 : c.round();
+      await client.writeSingleRegister(currentRegister, x);
+    }
+
+    await useEthernet(c);
+  }
+
+  Future<String> getVoltageEth() async {
+    c(modbus.ModbusClient client) async {
+      int voltageRegister = Helper.getRegister(isRead: true);
+      var registers = await client.readHoldingRegisters(voltageRegister, 1);
+      return (registers[0] / 10).toString() + 'V';
+    }
+
+    var x = await useEthernet(c);
+    return '$x v';
   }
 
   Future<String> getVoltage() async {
-    if (rsData.isEmpty == false) {
-      port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
-      final configu = SerialPortConfig();
-      configu.baudRate =
-          int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
-      configu.bits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
-      configu.parity =
-          int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
-      configu.stopBits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      try {
-        port.openReadWrite();
-        port.config = configu;
-        port.write(Helper.getVoltagReadCommand());
-        var data = port.read(18, timeout: 1000);
-        var x = Helper.convertUint8ListToString(data);
-        port.close();
-        return Helper.readValueFromHex(x, false);
-      } catch (e) {
-        print(e);
-        Helper.showToast(
-          context,
-          'Error in connecting with serial port.',
-          isError: true,
-        );
-        if (port.isOpen) {
+    if (shouldUseEth['value'] == true) {
+      return getVoltageEth();
+    } else {
+      if (rsData.isEmpty == false) {
+        try {
+          port.write(Helper.getVoltagReadCommand());
+          var data = port.read(18, timeout: 1000);
+          var x = Helper.convertUint8ListToString(data);
           port.close();
+          return Helper.readValueFromHex(x, false);
+        } catch (e) {
+          print(e);
+          Helper.showToast(
+            context,
+            'Error in connecting with serial port.',
+            isError: true,
+          );
+          if (port.isOpen) {
+            port.close();
+          }
+          return '0.0 V';
         }
-        return '0.0 v';
       }
     }
-    return '0.0 v';
+    return '0.0 V';
+  }
+
+  Future<String> getCurrentEth() async {
+    c(modbus.ModbusClient client) async {
+      int currentRegister = Helper.getRegister(isVoltage: false, isRead: true);
+      var registers = await client.readHoldingRegisters(currentRegister, 1);
+      return (registers[0] / 10).toString() + 'A';
+    }
+
+    var x = await useEthernet(c);
+    return '$x A';
   }
 
   Future<String> getCurrent() async {
-    if (rsData.isEmpty == false) {
-      port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
-      final configu = SerialPortConfig();
-      configu.baudRate =
-          int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
-      configu.bits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
-      configu.parity =
-          int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
-      configu.stopBits =
-          int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
-      try {
-        port.openReadWrite();
-        port.config = configu;
-        port.write(Helper.getCurrentReadCommand());
-        var data = port.read(18, timeout: 1000);
-        var x = Helper.convertUint8ListToString(data);
-        port.close();
-        return Helper.readValueFromHex(x, true);
-      } catch (e) {
-        print(e);
-        Helper.showToast(
-          context,
-          'Error in connecting with serial port.',
-          isError: true,
-        );
-        if (port.isOpen) {
+    if (shouldUseEth['value'] == true) {
+      return getCurrentEth();
+    } else {
+      if (rsData.isEmpty == false) {
+        try {
+          port.write(Helper.getCurrentReadCommand());
+          var data = port.read(18, timeout: 1000);
+          var x = Helper.convertUint8ListToString(data);
           port.close();
+          return Helper.readValueFromHex(x, true);
+        } catch (e) {
+          print(e);
+          Helper.showToast(
+            context,
+            'Error in connecting with serial port.',
+            isError: true,
+          );
+          if (port.isOpen) {
+            port.close();
+          }
+          return '0.0 A';
         }
-        return '0.0 A';
       }
     }
     return '0.0 A';
@@ -372,7 +436,7 @@ class _OperationWindowState extends State<OperationWindow> {
             Expanded(
               child: Row(children: [
                 ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 200),
+                  constraints: const BoxConstraints(maxWidth: 200),
                   child: Text(
                     'Data Logging:  ',
                     style: getStyle(),

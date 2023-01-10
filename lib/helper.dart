@@ -26,6 +26,7 @@ extension IntToString on int {
 class Helper {
   static String storageName = 'monitor_app';
   static String rsKey = 'rs_data';
+  static String useEthKey = 'use_eth';
   static String ethKey = 'eth_data';
   static String dasKey = 'das_key';
   static String operationKey = 'operation_key';
@@ -196,18 +197,23 @@ class Helper {
     return Helper.convertStringToUint8List(data);
   }
 
-  static Uint8List getVoltagWriteCommand(double voltage) {
+  static String getHexForOutput(double ip, int limit) {
     var y = '';
-    if (voltage * 10 > 20000) {
-      voltage = 20000;
-      y = voltage.round().toRadixString(16).toUpperCase();
+    if (ip * 10 > limit) {
+      ip = limit.ceilToDouble();
+      y = ip.round().toRadixString(16).toUpperCase();
     } else {
-      y = (voltage * 10).round().toRadixString(16).toUpperCase();
+      y = (ip * 10).round().toRadixString(16).toUpperCase();
     }
     var pads = 4 - (y.length);
     for (var i = 0; i < pads; i++) {
       y = '0$y';
     }
+    return y;
+  }
+
+  static Uint8List getVoltagWriteCommand(double voltage) {
+    var y = Helper.getHexForOutput(voltage, 20000);
     var x = '0106109B$y'.toUpperCase();
     var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';
@@ -216,17 +222,7 @@ class Helper {
   }
 
   static Uint8List getCurrentWriteCommand(double current) {
-    var y = '';
-    if (current * 10 > 60) {
-      current = 60;
-      y = current.round().toRadixString(16);
-    } else {
-      y = (current * 10).round().toRadixString(16);
-    }
-    var pads = 4 - (y.length);
-    for (var i = 0; i < pads; i++) {
-      y = '0$y';
-    }
+    var y = Helper.getHexForOutput(current, 60);
     var x = '0106109C$y'.toUpperCase();
     var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';
@@ -255,9 +251,9 @@ class Helper {
       }
       var result = int.parse(valueHex, radix: 16) / 10;
       print('reading packet helper - 246 ==> $hex id equal to $result');
-      return returnInt ? result : '$result$postFix';
+      return returnInt ? result : '$result $postFix';
     } catch (e) {
-      return returnInt ? 0 : '0.0$postFix';
+      return returnInt ? 0 : '0.0 $postFix';
     }
   }
 
@@ -267,6 +263,30 @@ class Helper {
     Random _rnd = Random();
     return String.fromCharCodes(Iterable.generate(
         length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
+  }
+
+  static int getRegister({bool isVoltage = true, bool isRead = false}) {
+    if (isVoltage) {
+      return isRead ? 4246 : 4251;
+    } else {
+      return isRead ? 4247 : 4252;
+    }
+  }
+
+  static int getHvRegister({bool isPassword = false}) {
+    return isPassword ? 4253 : 4250;
+  }
+
+  static modbus.ModbusClient getEthClient(dynamic ethData) {
+    var ip = ethData[0]['value'];
+    var port = int.parse(ethData[1]['value']);
+    var client = modbus.createTcpClient(
+      ip,
+      port: port,
+      mode: modbus.ModbusMode.rtu,
+      unitId: 1,
+    );
+    return client;
   }
 
   static void initethernet(String ip, int port) async {

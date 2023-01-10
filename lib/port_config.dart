@@ -26,6 +26,7 @@ class _PortConfigState extends State<PortConfig> {
     await storage.ready;
     var x = storage.getItem(Helper.rsKey) ?? [];
     var y = storage.getItem(Helper.ethKey) ?? [];
+    var z = storage.getItem(Helper.useEthKey) ?? {};
     if (x.isEmpty == false) {
       rsFormField[0]['value'] = Helper.getValueOfKey(x, 'com_port');
       rsFormField[1]['value'] = Helper.getValueOfKey(x, 'baud_rate');
@@ -37,6 +38,9 @@ class _PortConfigState extends State<PortConfig> {
       ethernetField[0]['value'] = Helper.getValueOfKey(y, 'ip_address');
       ethernetField[1]['value'] = Helper.getValueOfKey(y, 'service_port');
     }
+    if (z.isEmpty == false) {
+      shouldUseEth = z;
+    }
     setState(() {
       isLoadedStorage = true;
     });
@@ -45,58 +49,12 @@ class _PortConfigState extends State<PortConfig> {
   @override
   void initState() {
     super.initState();
-
-    // initPorts();
+    initPorts();
     loadPortConfig();
   }
 
-  initPort(String portName) {
-    port = SerialPort(portName);
-    final configu = SerialPortConfig();
-    configu.baudRate = 9600;
-    configu.bits = 7;
-    configu.parity = 2;
-    configu.stopBits = 1;
-    port.config = configu;
-    portInit = true;
-    port.openReadWrite();
-  }
-
   void initPorts() async {
-    // print("in here");
-    // if (!portInit) {
-    //   initPort("COM3");
-    // }
     setState(() => availablePorts = SerialPort.availablePorts);
-    // final name = SerialPort.availablePorts.first;
-
-    // SerialPortReader reader = SerialPortReader(port);
-    // try {
-    //   // port.openReadWrite();
-    //   print(Helper.getVoltagReadCommand());
-
-    //   var y = port.write(Helper.getVoltagReadCommand());
-    //   // var y = port.write(Helper.getVoltagWriteCommand(2000));
-    //   print("write");
-    //   print(y);
-    //   var readd = port.read(18, timeout: 1000);
-
-    //   print("READ");
-    //   print(Helper.convertUint8ListToString(readd));
-    //   // port.close();
-    //   // reader.stream.listen((data) {
-    //   //   var x = Helper.convertUint8ListToString(data);
-    //   //   reader.close();
-    //   //   port.close();
-    //   //   print('received is $x');
-    //   // });
-    // } catch (e) {
-    //   print('*****************');
-    //   // port.close();
-    //   print('error in serial port');
-    //   print(e);
-    //   print('=================');
-    // }
   }
 
   void _saveForm() async {
@@ -127,7 +85,7 @@ class _PortConfigState extends State<PortConfig> {
     }
   }
 
-  void nextPage() {
+  void nextPage() async {
     var x = storage.getItem(Helper.rsKey) ?? [];
     var y = storage.getItem(Helper.ethKey) ?? [];
     if (x.isEmpty && y.isEmpty) {
@@ -136,12 +94,75 @@ class _PortConfigState extends State<PortConfig> {
         'Incomplete Form',
         'Please fill in atleast one connection details',
       );
+    } else if (shouldUseEth['value'] == true && y.isEmpty) {
+      Helper.showError(
+        context,
+        'Incomplete Form',
+        'You have enabled Ethernet connection but the form is blank.',
+      );
+    } else if (shouldUseEth['value'] == false && x.isEmpty) {
+      Helper.showError(
+        context,
+        'Incomplete Form',
+        'You have disabled Ethernet connection but the RS232 form is blank.',
+      );
     } else {
+      await storage.setItem(Helper.useEthKey, shouldUseEth);
       Navigator.pushNamed(
         context,
         '/das_setting',
       );
     }
+  }
+
+  Widget getEthRadio() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        const Expanded(
+          flex: 1,
+          child: Text('Connect with ethernet'),
+        ),
+        Expanded(
+          flex: 1,
+          child: Row(
+            children: [
+              Radio<bool>(
+                  value: false,
+                  activeColor: Colors.redAccent,
+                  fillColor: const MaterialStatePropertyAll(Colors.blueAccent),
+                  groupValue: shouldUseEth['value'],
+                  onChanged: (index) {
+                    setState(() {
+                      shouldUseEth['value'] = false;
+                    });
+                  }),
+              const Expanded(
+                child: Text('No'),
+              )
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 1,
+          child: Row(
+            children: [
+              Radio<bool>(
+                  value: true,
+                  activeColor: Colors.redAccent,
+                  fillColor: const MaterialStatePropertyAll(Colors.blueAccent),
+                  groupValue: shouldUseEth['value'],
+                  onChanged: (index) {
+                    setState(() {
+                      shouldUseEth['value'] = true;
+                    });
+                  }),
+              const Expanded(child: Text('Yes'))
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -237,6 +258,8 @@ class _PortConfigState extends State<PortConfig> {
     {'label': 'Stop Bits', 'key': 'stop_bits', 'value': ''},
   ];
 
+  var shouldUseEth = {'value': false};
+
   var ethernetField = [
     {'label': 'IP Address', 'key': 'ip_address', 'value': ''},
     {'label': 'Service Port', 'key': 'service_port', 'value': ''},
@@ -250,6 +273,7 @@ class _PortConfigState extends State<PortConfig> {
             minHeight: 600.0,
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 '1.  RS232',
@@ -278,7 +302,9 @@ class _PortConfigState extends State<PortConfig> {
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.padded,
                                   child: DropdownButton<String>(
-                                    value: availablePorts[0],
+                                    value: e["value"] != ''
+                                        ? e["value"]
+                                        : availablePorts[0],
                                     icon: const Icon(Icons.arrow_downward),
                                     elevation: 16,
                                     style: const TextStyle(
@@ -372,6 +398,7 @@ class _PortConfigState extends State<PortConfig> {
     return Expanded(
       child: Center(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               '2.  Ethernet Port',
@@ -379,6 +406,8 @@ class _PortConfigState extends State<PortConfig> {
               style: columnTitleStyle,
             ),
             Helper.getVerticalMargin(50.0),
+            getEthRadio(),
+            Helper.getVerticalMargin(20.0),
             Form(
               key: _formKeyEthernet,
               child: ConstrainedBox(
