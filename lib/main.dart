@@ -25,7 +25,8 @@ class MyApp extends StatelessWidget {
       routes: {
         // When navigating to the "/" route, build the FirstScreen widget.
         '/login': (context) => const Login(),
-        '/': (context) => const PortConfig(),
+        '/': (context) => const Login(),
+        '/port_config': (context) => const PortConfig(),
         '/das_setting': (context) => const DasSetting(),
         '/operations': (context) => const OperationWindow(),
         '/log_view': (context) => const LogView(),

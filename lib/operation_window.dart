@@ -115,8 +115,8 @@ class _OperationWindowState extends State<OperationWindow> {
       var hvCmd = Helper.getHvOnOffCommand(on);
       var hvPass = Helper.getHvPassword();
       if (rsData.isEmpty == false) {
-        openPort();
         try {
+          openPort();
           port.write(hvPass);
           var data = port.read(18, timeout: 1000);
           var x = Helper.convertUint8ListToString(data);
@@ -189,6 +189,7 @@ class _OperationWindowState extends State<OperationWindow> {
       var v = double.parse(operationFormField[1]['value'].toString());
       if (rsData.isEmpty == false) {
         try {
+          openPort();
           port.write(Helper.getVoltagWriteCommand(v));
           var data = port.read(18, timeout: 1000);
           var x = Helper.convertUint8ListToString(data);
@@ -211,10 +212,10 @@ class _OperationWindowState extends State<OperationWindow> {
 
   Future<void> setVoltageEth() async {
     c(modbus.ModbusClient client) async {
-      var v = double.parse(operationFormField[1]['value'].toString()) * 10;
+      var v = double.parse(operationFormField[1]['value'].toString());
       int voltageRegister = Helper.getRegister();
-      int x = v > 20000 ? 20000 : v.round();
-      await client.writeSingleRegister(voltageRegister, x);
+      int x = v > 20000 ? 20000 : (v * 10).round();
+      print(await client.writeSingleRegister(voltageRegister, x));
     }
 
     await useEthernet(c);
@@ -227,6 +228,7 @@ class _OperationWindowState extends State<OperationWindow> {
       var c = double.parse(operationFormField[2]['value'].toString());
       if (rsData.isEmpty == false) {
         try {
+          openPort();
           port.write(Helper.getCurrentWriteCommand(c));
           var data = port.read(18, timeout: 1000);
           var x = Helper.convertUint8ListToString(data);
@@ -251,7 +253,7 @@ class _OperationWindowState extends State<OperationWindow> {
     c(modbus.ModbusClient client) async {
       var c = double.parse(operationFormField[2]['value'].toString());
       int currentRegister = Helper.getRegister(isVoltage: false);
-      int x = c > 60 ? 60 : c.round();
+      int x = c > 60 ? 60 : (c * 10).round();
       await client.writeSingleRegister(currentRegister, x);
     }
 
@@ -266,7 +268,7 @@ class _OperationWindowState extends State<OperationWindow> {
     }
 
     var x = await useEthernet(c);
-    return '$x v';
+    return '$x';
   }
 
   Future<String> getVoltage() async {
@@ -275,6 +277,7 @@ class _OperationWindowState extends State<OperationWindow> {
     } else {
       if (rsData.isEmpty == false) {
         try {
+          openPort();
           port.write(Helper.getVoltagReadCommand());
           var data = port.read(18, timeout: 1000);
           var x = Helper.convertUint8ListToString(data);
@@ -305,7 +308,7 @@ class _OperationWindowState extends State<OperationWindow> {
     }
 
     var x = await useEthernet(c);
-    return '$x A';
+    return '$x';
   }
 
   Future<String> getCurrent() async {
@@ -314,6 +317,7 @@ class _OperationWindowState extends State<OperationWindow> {
     } else {
       if (rsData.isEmpty == false) {
         try {
+          openPort();
           port.write(Helper.getCurrentReadCommand());
           var data = port.read(18, timeout: 1000);
           var x = Helper.convertUint8ListToString(data);

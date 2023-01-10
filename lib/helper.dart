@@ -201,7 +201,7 @@ class Helper {
     var y = '';
     if (ip * 10 > limit) {
       ip = limit.ceilToDouble();
-      y = ip.round().toRadixString(16).toUpperCase();
+      y = (ip * 10).round().toRadixString(16).toUpperCase();
     } else {
       y = (ip * 10).round().toRadixString(16).toUpperCase();
     }
