@@ -246,7 +246,7 @@ class Helper {
     try {
       List<String> x = hex.split('');
       var valueHex = '';
-      for (var i = 9; i < 13; i++) {
+      for (var i = 7; i < 11; i++) {
         valueHex += x[i];
       }
       var result = int.parse(valueHex, radix: 16) / 10;
