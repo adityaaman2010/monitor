@@ -31,8 +31,8 @@ class _PortConfigState extends State<PortConfig> {
       rsFormField[0]['value'] = Helper.getValueOfKey(x, 'com_port');
       rsFormField[1]['value'] = Helper.getValueOfKey(x, 'baud_rate');
       rsFormField[2]['value'] = Helper.getValueOfKey(x, 'word_length');
-      rsFormField[3]['value'] =
-          rsFormField[4]['value'] = Helper.getValueOfKey(x, 'stop_bits');
+      rsFormField[3]['value'] = Helper.getValueOfKey(x, 'parity');
+      rsFormField[4]['value'] = Helper.getValueOfKey(x, 'stop_bits');
     }
     if (y.isEmpty == false) {
       ethernetField[0]['value'] = Helper.getValueOfKey(y, 'ip_address');
@@ -258,7 +258,7 @@ class _PortConfigState extends State<PortConfig> {
     {'label': 'Stop Bits', 'key': 'stop_bits', 'value': ''},
   ];
 
-  var shouldUseEth = {'value': false};
+  dynamic shouldUseEth = {'value': false};
 
   var ethernetField = [
     {'label': 'IP Address', 'key': 'ip_address', 'value': ''},
@@ -347,6 +347,7 @@ class _PortConfigState extends State<PortConfig> {
                                 underline: null,
                                 onChanged: (String? value) {
                                   // This is called when the user selects an item.
+                                  print('i am $value');
                                   setState(() {
                                     e["value"] = value!;
                                   });
@@ -356,9 +357,11 @@ class _PortConfigState extends State<PortConfig> {
                                   return DropdownMenuItem<String>(
                                     value: value.toString(),
                                     child: Text(
-                                      value == 0
+                                      value.toString() == '0'
                                           ? 'None'
-                                          : (value == 1 ? 'Odd' : 'Even'),
+                                          : (value.toString() == '1'
+                                              ? 'Odd'
+                                              : 'Even'),
                                     ),
                                   );
                                 }).toList(),

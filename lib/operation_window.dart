@@ -108,7 +108,7 @@ class _OperationWindowState extends State<OperationWindow> {
 
   Future<void> setHv() async {
     if (shouldUseEth['value'] == true) {
-      setHvEth();
+      await setHvEth();
     } else {
       bool on =
           operationFormField[0]['value'].toString() == "on" ? true : false;
@@ -184,7 +184,7 @@ class _OperationWindowState extends State<OperationWindow> {
 
   Future<void> setVoltage() async {
     if (shouldUseEth['value'] == true) {
-      setVoltageEth();
+      await setVoltageEth();
     } else {
       var v = double.parse(operationFormField[1]['value'].toString());
       if (rsData.isEmpty == false) {
@@ -222,7 +222,7 @@ class _OperationWindowState extends State<OperationWindow> {
 
   Future<void> setCurrent() async {
     if (shouldUseEth['value'] == true) {
-      setCurrentEth();
+      await setCurrentEth();
     } else {
       var c = double.parse(operationFormField[2]['value'].toString());
       if (rsData.isEmpty == false) {
