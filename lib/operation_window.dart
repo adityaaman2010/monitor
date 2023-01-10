@@ -154,7 +154,7 @@ class _OperationWindowState extends State<OperationWindow> {
         sb.write(" ");
       });
       print("Slave ID: " + sb.toString());
-      return callback(client);
+      return await callback(client);
     } catch (e) {
       print(e);
       Helper.showToast(
