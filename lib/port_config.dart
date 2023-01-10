@@ -54,7 +54,10 @@ class _PortConfigState extends State<PortConfig> {
   }
 
   void initPorts() async {
-    setState(() => availablePorts = SerialPort.availablePorts);
+    setState(() {
+      var x = {...SerialPort.availablePorts};
+      availablePorts = x.toList();
+    });
   }
 
   void _saveForm() async {

@@ -231,7 +231,9 @@ class Helper {
   }
 
   static Uint8List getHvPassword() {
-    return Helper.convertStringToUint8List(':0110109D0002040106200015\r\n');
+    var x = '0106109D07D6';
+    var crc = Helper.computeLRC(x);
+    return Helper.convertStringToUint8List(':$x$crc\r\n');
   }
 
   static Uint8List getHvOnOffCommand(bool on) {
@@ -280,12 +282,11 @@ class Helper {
   static modbus.ModbusClient getEthClient(dynamic ethData) {
     var ip = ethData[0]['value'];
     var port = int.parse(ethData[1]['value']);
-    var client = modbus.createTcpClient(
-      ip,
-      port: port,
-      mode: modbus.ModbusMode.rtu,
-      unitId: 1,
-    );
+    var client = modbus.createTcpClient(ip,
+        port: port,
+        mode: modbus.ModbusMode.rtu,
+        unitId: 1,
+        timeout: const Duration(seconds: 2));
     return client;
   }
 

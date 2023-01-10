@@ -44,6 +44,7 @@ class _OperationWindowState extends State<OperationWindow> {
     dasData = storage.getItem(Helper.dasKey) ?? [];
     shouldUseEth = storage.getItem(Helper.useEthKey) ?? {};
     operationData = storage.getItem(Helper.operationKey) ?? [];
+    await setHvPassword();
     setState(() {
       isLoadedStorage = true;
     });
@@ -87,7 +88,6 @@ class _OperationWindowState extends State<OperationWindow> {
       );
       await setCurrent();
       await setVoltage();
-      await setHv();
       updateOperationValue();
     }
   }
@@ -106,13 +106,15 @@ class _OperationWindowState extends State<OperationWindow> {
     port.config = configu;
   }
 
-  Future<void> setHv() async {
+  Future<void> setHvPassword() async {
     if (shouldUseEth['value'] == true) {
-      await setHvEth();
+      c(modbus.ModbusClient client) async {
+        var passwordRegister = Helper.getHvRegister(isPassword: true);
+        await client.writeSingleRegister(passwordRegister, 2006);
+      }
+
+      await useEthernet(c);
     } else {
-      bool on =
-          operationFormField[0]['value'].toString() == "on" ? true : false;
-      var hvCmd = Helper.getHvOnOffCommand(on);
       var hvPass = Helper.getHvPassword();
       if (rsData.isEmpty == false) {
         try {
@@ -121,11 +123,37 @@ class _OperationWindowState extends State<OperationWindow> {
           var data = port.read(18, timeout: 1000);
           var x = Helper.convertUint8ListToString(data);
           print('Read return after password set is $x');
+          port.close();
+        } catch (e) {
+          print(e);
+          Helper.showToast(
+            context,
+            'Error in connecting with serial port.',
+            isError: true,
+          );
+          if (port.isOpen) {
+            port.close();
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> setHv(bool on) async {
+    if (shouldUseEth['value'] == true) {
+      await setHvEth(on);
+      setState(() => highVotage = on ? 'On' : 'Off');
+    } else {
+      var hvCmd = Helper.getHvOnOffCommand(on);
+      if (rsData.isEmpty == false) {
+        try {
+          openPort();
           port.write(hvCmd);
-          data = port.read(18, timeout: 1000);
-          x = Helper.convertUint8ListToString(data);
+          var data = port.read(18, timeout: 1000);
+          var x = Helper.convertUint8ListToString(data);
           print('Read return after hv on off $x');
           port.close();
+          setState(() => highVotage = on ? 'On' : 'Off');
         } catch (e) {
           print(e);
           Helper.showToast(
@@ -167,15 +195,10 @@ class _OperationWindowState extends State<OperationWindow> {
     }
   }
 
-  Future<void> setHvEth() async {
+  Future<void> setHvEth(bool on) async {
     c(modbus.ModbusClient client) async {
-      int hvAction = operationFormField[0]['value'].toString() == "on" ? 1 : 0;
-      var passwordRegister = Helper.getHvRegister(isPassword: true);
+      int hvAction = on ? 1 : 0;
       var hvRegister = Helper.getHvRegister();
-      var x = [0x0010, 0x3470];
-      // TODO: RP handle password
-      await client.writeMultipleRegisters(
-          passwordRegister, Uint16List.fromList(x));
       await client.writeSingleRegister(hvRegister, hvAction);
     }
 
@@ -357,20 +380,25 @@ class _OperationWindowState extends State<OperationWindow> {
   }
 
   Future<List<List<dynamic>>> getPreviousSavedFile() async {
-    var context = Path.Context(style: Path.Style.windows);
-    var x = dasData[1]['value'];
-    var y = dasData[2]['value'];
-    var z = dasData[3]['value'];
-    var filePath = context.join(x, "$y.$z");
-    File file = File(filePath);
-    if (file.existsSync()) {
-      var _stream = file.openRead();
-      var fields = await _stream
-          .transform(utf8.decoder)
-          .transform(CsvToListConverter())
-          .toList();
-      return fields;
-    } else {
+    try {
+      var context = Path.Context(style: Path.Style.windows);
+      var x = dasData[1]['value'];
+      var y = dasData[2]['value'];
+      var z = dasData[3]['value'];
+      var filePath = context.join(x, "$y.$z");
+      File file = File(filePath);
+      if (file.existsSync()) {
+        var _stream = file.openRead();
+        var fields = await _stream
+            .transform(utf8.decoder)
+            .transform(const CsvToListConverter())
+            .toList();
+        return fields;
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print(e);
       return [];
     }
   }
@@ -617,49 +645,62 @@ class _OperationWindowState extends State<OperationWindow> {
   Widget getVoltageLabel() {
     var x = operationFormField[0];
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(
-          flex: 1,
-          child: Text('High Voltage'),
-        ),
-        Expanded(
-          flex: 1,
-          child: Row(
-            children: [
-              Radio<String>(
-                  value: 'on',
-                  activeColor: Colors.redAccent,
-                  fillColor: const MaterialStatePropertyAll(Colors.blueAccent),
-                  groupValue: operationFormField[0]['value'],
-                  onChanged: (index) {
-                    setState(() {
-                      operationFormField[0]['value'] = 'on';
-                    });
-                  }),
-              const Expanded(
-                child: Text('On'),
-              )
-            ],
+        ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 200,
+            minWidth: 200,
           ),
+          child: const Text('High Voltage'),
         ),
-        Expanded(
-          flex: 1,
-          child: Row(
-            children: [
-              Radio<String>(
-                  value: 'off',
-                  activeColor: Colors.redAccent,
-                  fillColor: const MaterialStatePropertyAll(Colors.blueAccent),
-                  groupValue: operationFormField[0]['value'],
-                  onChanged: (index) {
-                    setState(() {
-                      operationFormField[0]['value'] = 'off';
-                    });
-                  }),
-              const Expanded(child: Text('Off'))
-            ],
+        ElevatedButton(
+          style: ButtonStyle(
+            padding: MaterialStateProperty.all(
+              const EdgeInsets.symmetric(
+                vertical: 15,
+                horizontal: 15,
+              ),
+            ),
+            textStyle: MaterialStateProperty.all(
+              const TextStyle(
+                fontSize: 20.0,
+              ),
+            ),
+            backgroundColor: MaterialStateProperty.all(
+              Colors.green[700],
+            ),
+            foregroundColor: MaterialStateProperty.all(Colors.white),
           ),
+          onPressed: (() {
+            setHv(true);
+          }),
+          child: const Text('ON'),
+        ),
+        Helper.getHorizontalMargin(20),
+        ElevatedButton(
+          style: ButtonStyle(
+            padding: MaterialStateProperty.all(
+              const EdgeInsets.symmetric(
+                vertical: 15,
+                horizontal: 15,
+              ),
+            ),
+            textStyle: MaterialStateProperty.all(
+              const TextStyle(
+                fontSize: 20.0,
+              ),
+            ),
+            backgroundColor: MaterialStateProperty.all(
+              Colors.red[700],
+            ),
+            foregroundColor: MaterialStateProperty.all(Colors.white),
+          ),
+          onPressed: (() {
+            setHv(false);
+          }),
+          child: const Text('OFF'),
         ),
       ],
     );

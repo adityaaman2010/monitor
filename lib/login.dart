@@ -60,6 +60,7 @@ class _LoginState extends State<Login> {
               logo,
               fit: BoxFit.cover,
             ),
+            Helper.getVerticalMargin(10),
             Text(
               serialNo,
               style: const TextStyle(
@@ -76,9 +77,7 @@ class _LoginState extends State<Login> {
                 decoration: TextDecoration.none,
               ),
             ),
-            const SizedBox(
-              height: 120.0,
-            ),
+            Helper.getVerticalMargin(50),
             SizedBox(
               width: 300.0,
               child: Material(
