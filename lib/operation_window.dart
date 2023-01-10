@@ -172,7 +172,7 @@ class _OperationWindowState extends State<OperationWindow> {
       int hvAction = operationFormField[0]['value'].toString() == "on" ? 1 : 0;
       var passwordRegister = Helper.getHvRegister(isPassword: true);
       var hvRegister = Helper.getHvRegister();
-      var x = [0x0106, 0x2000];
+      var x = [0x0010, 0x3470];
       // TODO: RP handle password
       await client.writeMultipleRegisters(
           passwordRegister, Uint16List.fromList(x));
@@ -341,14 +341,19 @@ class _OperationWindowState extends State<OperationWindow> {
   }
 
   Future<void> saveLoggingFile(List<List<dynamic>> data) async {
-    var context = Path.Context(style: Path.Style.windows);
-    var x = dasData[1]['value'];
-    var y = dasData[2]['value'];
-    var z = dasData[3]['value'];
-    var filePath = context.join(x, "$y.$z");
-    var file = File(filePath);
-    String csv = const ListToCsvConverter().convert(data);
-    await file.writeAsString(csv);
+    try {
+      var context = Path.Context(style: Path.Style.windows);
+      var x = dasData[1]['value'];
+      var y = dasData[2]['value'];
+      var z = dasData[3]['value'];
+      var filePath = context.join(x, "$y.$z");
+      var file = File(filePath);
+      String csv = const ListToCsvConverter().convert(data);
+      await file.writeAsString(csv);
+    } catch (e) {
+      print(e);
+    }
+    ;
   }
 
   Future<List<List<dynamic>>> getPreviousSavedFile() async {
