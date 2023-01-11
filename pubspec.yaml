@@ -47,12 +47,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_launcher_icons: ^0.8.0
-flutter_icons:
-  windows:
-    generate: true
-    image_path: "assets/images/app-icon.png"
-    icon_size: 48 
+  flutter_launcher_name: "^0.0.1"
+flutter_launcher_name:
+  name: "VSOFT-DAS"
+
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
