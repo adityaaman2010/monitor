@@ -44,6 +44,10 @@ class _OperationWindowState extends State<OperationWindow> {
     dasData = storage.getItem(Helper.dasKey) ?? [];
     shouldUseEth = storage.getItem(Helper.useEthKey) ?? {};
     operationData = storage.getItem(Helper.operationKey) ?? [];
+    if (operationData.isEmpty == false) {
+      operationFormField[1]['value'] = operationData[1]['value'];
+      operationFormField[2]['value'] = operationData[2]['value'];
+    }
     await setHvPassword();
     setState(() {
       isLoadedStorage = true;
@@ -573,7 +577,7 @@ class _OperationWindowState extends State<OperationWindow> {
                   maxWidth: 200,
                 ),
                 child: TextFormField(
-                  initialValue: operationData[1]["value"],
+                  initialValue: operationFormField[1]["value"],
                   onSaved: (value) {
                     operationFormField[1]["value"] = value!;
                   },
@@ -593,7 +597,7 @@ class _OperationWindowState extends State<OperationWindow> {
                   maxWidth: 200,
                 ),
                 child: TextFormField(
-                  initialValue: operationData[2]["value"],
+                  initialValue: operationFormField[2]["value"],
                   onSaved: (value) {
                     operationFormField[2]["value"] = value!;
                   },
