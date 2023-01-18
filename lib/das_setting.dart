@@ -63,8 +63,7 @@ class _DasSettingState extends State<DasSetting> {
         padding: const EdgeInsets.all(20.0),
         child: Center(
           widthFactor: 1.5,
-          child: Expanded(
-              child: Column(
+          child: Column(
             children: [
               isLoadedStorage ? getDasForm() : Container(),
               Row(
@@ -121,7 +120,7 @@ class _DasSettingState extends State<DasSetting> {
                 ],
               ),
             ],
-          )),
+          ),
         ),
       ),
     );

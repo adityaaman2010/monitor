@@ -465,6 +465,7 @@ class _OperationWindowState extends State<OperationWindow> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: isLoadedStorage
                   ? [
                       getControlSection(),
