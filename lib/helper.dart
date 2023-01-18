@@ -180,7 +180,7 @@ class Helper {
     }
     lrc = lrc & 0xff; // mask the result to 8 bits
     lrc = (lrc ^ 0xff) + 1; // invert the bits and add 1
-    return lrc.toRadixString(16).toUpperCase();
+    return lrc.toRadixString(16).padLeft(2, '0').toUpperCase();
   }
 
   static Uint8List getVoltagReadCommand() {
