@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
@@ -144,6 +143,7 @@ class _OperationWindowState extends State<OperationWindow> {
   }
 
   Future<void> setHv(bool on) async {
+    await setHvPassword();
     if (shouldUseEth['value'] == true) {
       await setHvEth(on);
       setState(() => highVotage = on ? 'On' : 'Off');
@@ -372,8 +372,7 @@ class _OperationWindowState extends State<OperationWindow> {
       var context = Path.Context(style: Path.Style.windows);
       var x = dasData[1]['value'];
       var y = dasData[2]['value'];
-      var z = dasData[3]['value'];
-      var filePath = context.join(x, "$y.$z");
+      var filePath = context.join(x, "$y.csv");
       var file = File(filePath);
       String csv = const ListToCsvConverter().convert(data);
       await file.writeAsString(csv);
@@ -388,8 +387,7 @@ class _OperationWindowState extends State<OperationWindow> {
       var context = Path.Context(style: Path.Style.windows);
       var x = dasData[1]['value'];
       var y = dasData[2]['value'];
-      var z = dasData[3]['value'];
-      var filePath = context.join(x, "$y.$z");
+      var filePath = context.join(x, "$y.csv");
       File file = File(filePath);
       if (file.existsSync()) {
         var _stream = file.openRead();
@@ -582,13 +580,24 @@ class _OperationWindowState extends State<OperationWindow> {
                     operationFormField[1]["value"] = value!;
                   },
                   decoration: InputDecoration(
+                    hintText: Helper.getVoltageRange(),
                     labelText: operationFormField[1]["label"],
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter some text';
+                    try {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter some text';
+                      }
+                      var x = double.parse(value.toString());
+                      var z = Helper.getPlcInputRange();
+                      if (x >= z[0] && x <= z[1]) {
+                        return null;
+                      } else {
+                        return 'Please enter valid input';
+                      }
+                    } catch (e) {
+                      return 'Please enter valid input';
                     }
-                    return null;
                   },
                 ),
               ),
@@ -602,13 +611,24 @@ class _OperationWindowState extends State<OperationWindow> {
                     operationFormField[2]["value"] = value!;
                   },
                   decoration: InputDecoration(
+                    hintText: Helper.getCurrentRange(),
                     labelText: operationFormField[2]["label"],
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter some text';
+                    try {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter some text';
+                      }
+                      var x = double.parse(value.toString());
+                      var z = Helper.getPlcInputRange(isCurrent: true);
+                      if (x >= z[0] && x <= z[1]) {
+                        return null;
+                      } else {
+                        return 'Please enter valid input';
+                      }
+                    } catch (e) {
+                      return 'Please enter valid input';
                     }
-                    return null;
                   },
                 ),
               )

@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libserialport/flutter_libserialport.dart';
@@ -21,6 +23,25 @@ class _PortConfigState extends State<PortConfig> {
   static String title = 'Port Configuration';
   final _formKeyRs = GlobalKey<FormState>();
   final _formKeyEthernet = GlobalKey<FormState>();
+  var baudRates = [
+    300,
+    600,
+    1200,
+    2400,
+    4800,
+    9600,
+    14400,
+    19200,
+    38400,
+    56000,
+    57600,
+    115200,
+    128000,
+    230400,
+    26000
+  ];
+  var dataBits = [7, 8];
+  var stopBits = [1, 2];
 
   void loadPortConfig() async {
     await storage.ready;
@@ -255,10 +276,10 @@ class _PortConfigState extends State<PortConfig> {
 
   var rsFormField = [
     {'label': 'Com Port', 'key': 'com_port', 'value': ''},
-    {'label': 'Baud Rate', 'key': 'baud_rate', 'value': ''},
-    {'label': 'Word Length', 'key': 'word_length', 'value': ''},
+    {'label': 'Baud Rate', 'key': 'baud_rate', 'value': 9600},
+    {'label': 'Word Length', 'key': 'word_length', 'value': 7},
     {'label': 'Parity', 'key': 'parity', 'value': 0},
-    {'label': 'Stop Bits', 'key': 'stop_bits', 'value': ''},
+    {'label': 'Stop Bits', 'key': 'stop_bits', 'value': 1},
   ];
 
   dynamic shouldUseEth = {'value': false};
@@ -267,6 +288,39 @@ class _PortConfigState extends State<PortConfig> {
     {'label': 'IP Address', 'key': 'ip_address', 'value': ''},
     {'label': 'Service Port', 'key': 'service_port', 'value': ''},
   ];
+
+  Widget getDropDownRs(List<int> x, dynamic e) {
+    return Padding(
+      padding: const EdgeInsets.all(0),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: e['label'],
+        ),
+        child: ButtonTheme(
+          materialTapTargetSize: MaterialTapTargetSize.padded,
+          child: DropdownButton<int>(
+            value: e["value"],
+            icon: const Icon(Icons.arrow_downward),
+            elevation: 16,
+            style: const TextStyle(color: Colors.deepPurple),
+            underline: null,
+            onChanged: (value) {
+              // This is called when the user selects an item.
+              setState(() {
+                e["value"] = value;
+              });
+            },
+            items: x.map<DropdownMenuItem<int>>((int value) {
+              return DropdownMenuItem<int>(
+                value: value,
+                child: Text(value.toString()),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget getRsColumn() {
     return Expanded(
@@ -372,22 +426,12 @@ class _PortConfigState extends State<PortConfig> {
                             ),
                           ),
                         );
+                      } else if (e['key'] == 'word_length') {
+                        return getDropDownRs(dataBits, e);
+                      } else if (e['key'] == 'stop_bits') {
+                        return getDropDownRs(stopBits, e);
                       } else {
-                        return TextFormField(
-                          initialValue: e['value'].toString(),
-                          onSaved: (value) {
-                            e["value"] = value!;
-                          },
-                          decoration: InputDecoration(
-                            labelText: e["label"].toString(),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter some text';
-                            }
-                            return null;
-                          },
-                        );
+                        return getDropDownRs(baudRates, e);
                       }
                     }).toList(),
                   ),

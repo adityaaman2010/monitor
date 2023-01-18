@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:monitor/helper.dart';
+import 'package:localstorage/localstorage.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -9,10 +10,11 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  final LocalStorage storage = LocalStorage(Helper.storageName);
   static String logo = 'assets/images/logo.png';
   static String title = 'Data Acquision System';
-  static String serialNo = 'Serial No.  :VSET030000001';
-  static String modelNo = 'Model No.  :VSETAC2000PS';
+  static String serialNo = 'Serial No.  :VSET03000001';
+  static String modelNo = 'Model No.  :VSETDC2000PS';
   String userName = '';
   String passwordValue = '';
 
@@ -31,9 +33,15 @@ class _LoginState extends State<Login> {
     }
   }
 
+  void clearStorage() async {
+    await storage.ready;
+    await storage.clear();
+  }
+
   @override
   void initState() {
     super.initState();
+    clearStorage();
     userId.addListener(() {
       setState(() {
         userName = userId.text;

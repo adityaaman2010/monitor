@@ -318,4 +318,24 @@ class Helper {
       client.close();
     }
   }
+
+  static String getVoltageRange() {
+    return '0-2000V';
+  }
+
+  static String getCurrentRange() {
+    return '0-6A';
+  }
+
+  static List<int> getPlcInputRange({bool isCurrent = false}) {
+    List<int> result = [];
+    if (isCurrent) {
+      result.add(0);
+      result.add(6);
+    } else {
+      result.add(0);
+      result.add(2000);
+    }
+    return result;
+  }
 }
