@@ -304,10 +304,10 @@ class _PortConfigState extends State<PortConfig> {
             elevation: 16,
             style: const TextStyle(color: Colors.deepPurple),
             underline: null,
-            onChanged: (value) {
+            onChanged: (int? value) {
               // This is called when the user selects an item.
               setState(() {
-                e["value"] = value;
+                e["value"] = value!;
               });
             },
             items: x.map<DropdownMenuItem<int>>((int value) {
@@ -403,8 +403,6 @@ class _PortConfigState extends State<PortConfig> {
                                     const TextStyle(color: Colors.deepPurple),
                                 underline: null,
                                 onChanged: (String? value) {
-                                  // This is called when the user selects an item.
-                                  print('i am $value');
                                   setState(() {
                                     e["value"] = value!;
                                   });

@@ -37,8 +37,7 @@ class _LogViewState extends State<LogView> {
     var context = Path.Context(style: Path.Style.windows);
     var x = dasData[1]['value'];
     var y = dasData[2]['value'];
-    var z = dasData[3]['value'];
-    var filePath = context.join(x, "$y.$z");
+    var filePath = context.join(x, "$y.csv");
     File file = File(filePath);
     if (file.existsSync()) {
       var _stream = file.openRead();

@@ -98,13 +98,10 @@ class _OperationWindowState extends State<OperationWindow> {
   void openPort() {
     port = SerialPort(Helper.getValueOfKey(rsData, 'com_port'));
     final configu = SerialPortConfig();
-    configu.baudRate =
-        int.tryParse(Helper.getValueOfKey(rsData, 'baud_rate')) ?? 9600;
-    configu.bits =
-        int.tryParse(Helper.getValueOfKey(rsData, 'word_length')) ?? 7;
-    configu.parity = int.tryParse(Helper.getValueOfKey(rsData, 'parity')) ?? 2;
-    configu.stopBits =
-        int.tryParse(Helper.getValueOfKey(rsData, 'stop_bits')) ?? 1;
+    configu.baudRate = Helper.getValueOfKey(rsData, 'baud_rate');
+    configu.bits = Helper.getValueOfKey(rsData, 'word_length');
+    configu.parity = Helper.getValueOfKey(rsData, 'parity');
+    configu.stopBits = Helper.getValueOfKey(rsData, 'stop_bits');
     port.openReadWrite();
     port.config = configu;
   }
