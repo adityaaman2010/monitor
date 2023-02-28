@@ -197,6 +197,24 @@ class Helper {
     return Helper.convertStringToUint8List(data);
   }
 
+  static String getHexForVoltageOutPut(double ip) {
+    int multiplier = 0;
+    if (ip > 0 && ip <= 20) {
+      multiplier = (20000 / 20).floor();
+    } else if (ip > 20 && ip <= 200) {
+      multiplier = (20000 / 200).floor();
+    } else {
+      multiplier = (20000 / 2000).floor();
+    }
+    double x = ip * multiplier;
+    var y = x.round().toRadixString(16).toUpperCase();
+    var pads = 4 - (y.length);
+    for (var i = 0; i < pads; i++) {
+      y = '0$y';
+    }
+    return y;
+  }
+
   static String getHexForOutput(double ip, int limit) {
     var y = '';
     if (ip * 10 > limit) {
@@ -213,7 +231,7 @@ class Helper {
   }
 
   static Uint8List getVoltagWriteCommand(double voltage) {
-    var y = Helper.getHexForOutput(voltage, 20000);
+    var y = Helper.getHexForVoltageOutPut(voltage);
     var x = '0106109B$y'.toUpperCase();
     var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';

@@ -83,13 +83,13 @@ class _PortConfigState extends State<PortConfig> {
 
   void _saveForm() async {
     if (_formKeyRs.currentState!.validate()) {
-      var saveRs = false;
-      if ((rsFormField[0]['value'] == '' && availablePorts.isEmpty == false)) {
-        rsFormField[0]['value'] = availablePorts[0];
-        saveRs = true;
-      } else if (rsFormField[0]['value'] != '') {
-        saveRs = true;
-      }
+      var saveRs = true;
+      // if ((rsFormField[0]['value'] == '' && availablePorts.isEmpty == false)) {
+      //   rsFormField[0]['value'] = availablePorts[0];
+      //   saveRs = true;
+      // } else if (rsFormField[0]['value'] != '') {
+      //   saveRs = true;
+      // }
       if (saveRs) {
         _formKeyRs.currentState!.save();
         await storage.setItem(Helper.rsKey, rsFormField);
@@ -395,28 +395,26 @@ class _PortConfigState extends State<PortConfig> {
                             child: ButtonTheme(
                               materialTapTargetSize:
                                   MaterialTapTargetSize.padded,
-                              child: DropdownButton<String>(
-                                value: e["value"].toString(),
+                              child: DropdownButton<int>(
+                                value: e["value"] as int,
                                 icon: const Icon(Icons.arrow_downward),
                                 elevation: 16,
                                 style:
                                     const TextStyle(color: Colors.deepPurple),
                                 underline: null,
-                                onChanged: (String? value) {
+                                onChanged: (value) {
                                   setState(() {
                                     e["value"] = value!;
                                   });
                                 },
                                 items: [0, 1, 2]
-                                    .map<DropdownMenuItem<String>>((int value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value.toString(),
+                                    .map<DropdownMenuItem<int>>((int value) {
+                                  return DropdownMenuItem<int>(
+                                    value: value,
                                     child: Text(
-                                      value.toString() == '0'
+                                      value == 0
                                           ? 'None'
-                                          : (value.toString() == '1'
-                                              ? 'Odd'
-                                              : 'Even'),
+                                          : (value == 1 ? 'Odd' : 'Even'),
                                     ),
                                   );
                                 }).toList(),

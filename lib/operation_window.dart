@@ -29,11 +29,18 @@ class _OperationWindowState extends State<OperationWindow> {
   final _operationForm = GlobalKey<FormState>();
   String voltage = '', current = '', highVotage = 'Off';
   bool logData = false, isLoadedStorage = false;
+  int voltagePicicIndex = 0;
 
   var operationFormField = [
     {'label': 'High Voltage', 'key': 'high_voltage', 'value': ''},
     {'label': 'Output Voltage Setting', 'key': 'opvs', 'value': ''},
     {'label': 'Output Current Setting', 'key': 'opcs', 'value': ''},
+  ];
+
+  var voltagePics = [
+    'assets/images/voltage-one.png',
+    'assets/images/voltage-two.png',
+    'assets/images/voltage-three.png',
   ];
 
   void loadPortConfig() async {
@@ -73,7 +80,6 @@ class _OperationWindowState extends State<OperationWindow> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     logData = false;
     try {
@@ -557,6 +563,105 @@ class _OperationWindowState extends State<OperationWindow> {
     );
   }
 
+  Widget getVoltageAndCurrentSection() {
+    return Row(
+      children: [
+        Form(
+          key: _operationForm,
+          child: Column(children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 200,
+              ),
+              child: TextFormField(
+                initialValue: operationFormField[1]["value"],
+                onSaved: (value) {
+                  operationFormField[1]["value"] = value!;
+                },
+                decoration: InputDecoration(
+                  hintText: Helper.getVoltageRange(),
+                  labelText: operationFormField[1]["label"],
+                ),
+                onChanged: (value) {
+                  var x = double.parse(value);
+                  int i = 0;
+                  if (x > 0 && x <= 20) {
+                    i = 0;
+                  } else if (x > 20 && x <= 200) {
+                    i = 1;
+                  } else {
+                    i = 2;
+                  }
+                  setState(() {
+                    voltagePicicIndex = i;
+                  });
+                },
+                validator: (value) {
+                  try {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter some text';
+                    }
+                    var x = double.parse(value.toString());
+                    var z = Helper.getPlcInputRange();
+                    if (x >= z[0] && x <= z[1]) {
+                      return null;
+                    } else {
+                      return 'Please enter valid input';
+                    }
+                  } catch (e) {
+                    return 'Please enter valid input';
+                  }
+                },
+              ),
+            ),
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 200,
+              ),
+              child: TextFormField(
+                initialValue: operationFormField[2]["value"],
+                onSaved: (value) {
+                  operationFormField[2]["value"] = value!;
+                },
+                decoration: InputDecoration(
+                  hintText: Helper.getCurrentRange(),
+                  labelText: operationFormField[2]["label"],
+                ),
+                validator: (value) {
+                  try {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter some text';
+                    }
+                    var x = double.parse(value.toString());
+                    var z = Helper.getPlcInputRange(isCurrent: true);
+                    if (x >= z[0] && x <= z[1]) {
+                      return null;
+                    } else {
+                      return 'Please enter valid input';
+                    }
+                  } catch (e) {
+                    return 'Please enter valid input';
+                  }
+                },
+              ),
+            )
+          ]),
+        ),
+        Helper.getHorizontalMargin(10.0),
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 100,
+            maxHeight: 100,
+          ),
+          child: Image.asset(
+            voltagePics[voltagePicicIndex],
+            fit: BoxFit.cover,
+          ),
+        )
+      ],
+    );
+  }
+
   Widget getControlSection() {
     return Expanded(
       child: Column(
@@ -565,73 +670,8 @@ class _OperationWindowState extends State<OperationWindow> {
           getTitleText('Control Section'),
           Helper.getVerticalMargin(50),
           getVoltageLabel(),
-          Form(
-            key: _operationForm,
-            child: Column(children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 200,
-                ),
-                child: TextFormField(
-                  initialValue: operationFormField[1]["value"],
-                  onSaved: (value) {
-                    operationFormField[1]["value"] = value!;
-                  },
-                  decoration: InputDecoration(
-                    hintText: Helper.getVoltageRange(),
-                    labelText: operationFormField[1]["label"],
-                  ),
-                  validator: (value) {
-                    try {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter some text';
-                      }
-                      var x = double.parse(value.toString());
-                      var z = Helper.getPlcInputRange();
-                      if (x >= z[0] && x <= z[1]) {
-                        return null;
-                      } else {
-                        return 'Please enter valid input';
-                      }
-                    } catch (e) {
-                      return 'Please enter valid input';
-                    }
-                  },
-                ),
-              ),
-              ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 200,
-                ),
-                child: TextFormField(
-                  initialValue: operationFormField[2]["value"],
-                  onSaved: (value) {
-                    operationFormField[2]["value"] = value!;
-                  },
-                  decoration: InputDecoration(
-                    hintText: Helper.getCurrentRange(),
-                    labelText: operationFormField[2]["label"],
-                  ),
-                  validator: (value) {
-                    try {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter some text';
-                      }
-                      var x = double.parse(value.toString());
-                      var z = Helper.getPlcInputRange(isCurrent: true);
-                      if (x >= z[0] && x <= z[1]) {
-                        return null;
-                      } else {
-                        return 'Please enter valid input';
-                      }
-                    } catch (e) {
-                      return 'Please enter valid input';
-                    }
-                  },
-                ),
-              )
-            ]),
-          ),
+          Helper.getVerticalMargin(20.0),
+          getVoltageAndCurrentSection(),
           Helper.getVerticalMargin(20.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
