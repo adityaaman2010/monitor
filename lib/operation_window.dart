@@ -38,9 +38,9 @@ class _OperationWindowState extends State<OperationWindow> {
   ];
 
   var voltagePics = [
-    'assets/images/voltage-one.png',
-    'assets/images/voltage-two.png',
     'assets/images/voltage-three.png',
+    'assets/images/voltage-two.png',
+    'assets/images/voltage-one.png',
   ];
 
   void loadPortConfig() async {
