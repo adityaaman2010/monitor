@@ -6,6 +6,71 @@ import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:modbus/modbus.dart' as modbus;
 
+
+var currentLookup = {
+  0: 0,
+  0.1: 240,
+  0.2: 510,
+  0.3: 731,
+  0.4: 846,
+  0.5: 956,
+  0.6: 1016,
+  0.7: 1120,
+  0.8: 1430,
+  0.9: 2621,
+  1.0: 3670,
+  1.1: 4522,
+  1.2: 5505,
+  1.3: 6619,
+  1.4: 7700,
+  1.5: 8841,
+  1.6: 9988,
+  1.7: 11062,
+  1.8: 12209,
+  1.9: 13304,
+  2.0: 14418,
+  2.1: 15532,
+  2.2: 16711,
+  2.3: 17760,
+  2.4: 20054,
+  2.5: 21168,
+  2.6: 22282,
+  2.7: 23448,
+  2.8: 24510,
+  2.9: 25624,
+  3.0: 26738,
+  3.1: 29032,
+  3.2: 30146,
+  3.3: 31195,
+  3.4: 32309,
+  3.5: 33488,
+  3.6: 35651,
+  3.7: 36765,
+  3.8: 37879,
+  3.9: 38993,
+  4.0: 40107,
+  4.1: 42336,
+  4.2: 43450,
+  4.3: 44564,
+  4.4: 45678,
+  4.5: 46792,
+  4.6: 47906,
+  4.7: 50134,
+  4.8: 51183,
+  4.9: 52297,
+  5.0: 53411,
+  5.1: 54460,
+  5.2: 55574,
+  5.3: 57802,
+  5.4: 58916,
+  5.5: 60030,
+  5.6: 61079,
+  5.7: 62193,
+  5.8: 63634,
+  5.9: 65011,
+  6.0: 65535,
+};
+
 extension IntToString on int {
   String toHex() => '0x${toRadixString(16)}';
   String toPadded([int width = 3]) => toString().padLeft(width, '0');
@@ -229,6 +294,18 @@ class Helper {
     }
     return y;
   }
+
+  static String getHexFromInt(int inputValue){
+    var y = '';
+    y = inputValue.toRadixString(16).toUpperCase();
+    var pads = 4 - (y.length);
+    for (var i = 0; i < pads; i++) {
+      y = '0$y';
+    }
+    return y;
+  }
+
+
 
   static Uint8List getVoltagWriteCommand(double voltage) {
     var y = Helper.getHexForVoltageOutPut(voltage);
