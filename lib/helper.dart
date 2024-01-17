@@ -263,17 +263,18 @@ class Helper {
   }
 
   static String getHexForVoltageOutPut(double ip) {
-    int multiplier = 0;
-    if (ip > 0 && ip <= 20) {
-      multiplier = (20000 / 20).floor();
-    } else if (ip > 20 && ip <= 200) {
-      multiplier = (20000 / 200).floor();
-    } else {
-      multiplier = (20000 / 2000).floor();
-    }
-    double x = ip * multiplier;
-    var y = x.round().toRadixString(16).toUpperCase();
-    var pads = 4 - (y.length);
+    double multiplier = 0;
+  if (ip >= 2 && ip <= 26) {
+    multiplier = 2000 + ((ip - 2) / (26 - 2)) * (20000 - 2000);
+  } else if (ip >= 27 && ip <= 199) {
+    multiplier = 2000 + ((ip - 27) / (199 - 27)) * (20000 - 2000);
+  } else if (ip >= 200 && ip <= 2000) {
+    multiplier = 2000 + ((ip - 200) / (2000 - 200)) * (20000 - 2000);
+  } else {
+    return "Input out of range";
+  }
+  var y = multiplier.round().toRadixString(16).toUpperCase();
+  var pads = 4 - (y.length);
     for (var i = 0; i < pads; i++) {
       y = '0$y';
     }
@@ -308,16 +309,32 @@ class Helper {
 
 
   static Uint8List getVoltagWriteCommand(double voltage) {
+    print('voltag in is  ${voltage}');
     var y = Helper.getHexForVoltageOutPut(voltage);
     var x = '0106109B$y'.toUpperCase();
     var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';
-    print(data);
+    print('voltagewrite is  ${data}');
     return Helper.convertStringToUint8List(data);
   }
 
   static Uint8List getCurrentWriteCommand(double current) {
-    var y = Helper.getHexForOutput(current, 60);
+    double numCurrent = 0;
+    if (current > 6){
+      numCurrent = 6;
+    }
+    else if(current < 0){
+    numCurrent = 0;
+    }
+    else{
+      numCurrent = current;
+    }
+    
+    var currentSingleDecimal = num.parse(numCurrent.toStringAsFixed(1));
+    print("Currentsingledecimalis: ${currentSingleDecimal}");
+    print(currentLookup[currentSingleDecimal] ?? 0);
+    var y = Helper.getHexFromInt(currentLookup[currentSingleDecimal]?? 0);
+    // var y = Helper.getHexForOutput(current, 60);
     var x = '0106109C$y'.toUpperCase();
     var crc = Helper.computeLRC(x);
     var data = ':$x$crc\r\n';
