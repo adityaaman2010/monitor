@@ -242,9 +242,20 @@ class _OperationWindowState extends State<OperationWindow> {
 
   Future<void> setVoltageEth() async {
     c(modbus.ModbusClient client) async {
+      double multiplier = 0;
       var v = double.parse(operationFormField[1]['value'].toString());
       int voltageRegister = Helper.getRegister();
-      int x = v > 20000 ? 20000 : (v * 10).round();
+      if (v >= 2 && v <= 26) {
+        multiplier = 2000 + ((v - 2) / (26 - 2)) * (20000 - 2000);
+      } else if (v >= 27 && v <= 199) {
+        multiplier = 2000 + ((v - 27) / (199 - 27)) * (20000 - 2000);
+      } else if (v >= 200 && v <= 2000) {
+        multiplier = 2000 + ((v - 200) / (2000 - 200)) * (20000 - 2000);
+      } else {
+        return "Input out of range";
+      }
+      int x = multiplier.round();
+      // int x = v > 20000 ? 20000 : (v * 10).round();
       print(await client.writeSingleRegister(voltageRegister, x));
     }
 
@@ -283,7 +294,21 @@ class _OperationWindowState extends State<OperationWindow> {
     c(modbus.ModbusClient client) async {
       var c = double.parse(operationFormField[2]['value'].toString());
       int currentRegister = Helper.getRegister(isVoltage: false);
-      int x = c > 60 ? 60 : (c * 10).round();
+      double numCurrent = 0;
+      if (c > 6){
+        numCurrent = 6;
+      }
+      else if(c < 0){
+      numCurrent = 0;
+      }
+      else{
+        numCurrent = c;
+      }
+      
+      var currentSingleDecimal = num.parse(numCurrent.toStringAsFixed(1));
+      print("Currentsingledecimalis: ${currentSingleDecimal}");
+      int x = currentLookup[currentSingleDecimal] ?? 0;
+      // int x = c > 60 ? 60 : (c * 10).round();
       await client.writeSingleRegister(currentRegister, x);
     }
 
