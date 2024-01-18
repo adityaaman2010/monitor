@@ -7,7 +7,7 @@ import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:csv/csv.dart';
 import 'package:path/path.dart' as Path;
 import 'package:modbus/modbus.dart' as modbus;
-
+import 'package:flutter/services.dart';
 import 'helper.dart';
 
 class OperationWindow extends StatefulWidget {
@@ -575,6 +575,8 @@ class _OperationWindowState extends State<OperationWindow> {
               ),
               child: TextFormField(
                 initialValue: operationFormField[1]["value"],
+                keyboardType: TextInputType.numberWithOptions(decimal: false), // Only allow whole numbers
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Only allow digits
                 onSaved: (value) {
                   operationFormField[1]["value"] = value!;
                 },
@@ -583,11 +585,11 @@ class _OperationWindowState extends State<OperationWindow> {
                   labelText: operationFormField[1]["label"],
                 ),
                 onChanged: (value) {
-                  var x = double.parse(value);
+                  var x = int.parse(value);
                   int i = 0;
-                  if (x > 0 && x <= 20) {
+                  if (x >= 2 && x <= 26) {
                     i = 0;
-                  } else if (x > 20 && x <= 200) {
+                  } else if (x >= 27 && x < 200) {
                     i = 1;
                   } else {
                     i = 2;
@@ -606,7 +608,7 @@ class _OperationWindowState extends State<OperationWindow> {
                     if (x >= z[0] && x <= z[1]) {
                       return null;
                     } else {
-                      return 'Please enter valid input';
+                      return 'Please value in range ${z[0]}-${z[1]}';
                     }
                   } catch (e) {
                     return 'Please enter valid input';
@@ -620,6 +622,9 @@ class _OperationWindowState extends State<OperationWindow> {
               ),
               child: TextFormField(
                 initialValue: operationFormField[2]["value"],
+                keyboardType: TextInputType.numberWithOptions(decimal: true), // Allow decimal numbers
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}$'))], // Allow only one decimal point
+
                 onSaved: (value) {
                   operationFormField[2]["value"] = value!;
                 },

@@ -432,7 +432,7 @@ class Helper {
   }
 
   static String getVoltageRange() {
-    return '0-2000V';
+    return '2-2000V';
   }
 
   static String getCurrentRange() {
@@ -445,7 +445,7 @@ class Helper {
       result.add(0);
       result.add(6);
     } else {
-      result.add(0);
+      result.add(2);
       result.add(2000);
     }
     return result;
