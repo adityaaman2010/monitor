@@ -320,7 +320,12 @@ class _OperationWindowState extends State<OperationWindow> {
     c(modbus.ModbusClient client) async {
       int voltageRegister = Helper.getRegister(isRead: true);
       var registers = await client.readHoldingRegisters(voltageRegister, 1);
-      return (registers[0] / 10).toString() + 'V';
+      var voltage_string = (registers[0] / 10).toString() + 'V';
+      String numericString = voltage_string.replaceAll(RegExp(r'[^0-9.]'), '');
+      double doubleValue = double.parse(numericString) * 10;
+      int intValue = doubleValue.toInt();
+      String v = getVoltageReadLookup(intValue) + 'V'; 
+      return '$v';
     }
 
     var x = await useEthernet(c);
@@ -455,8 +460,8 @@ class _OperationWindowState extends State<OperationWindow> {
         }
       }
       var c = await getCurrent();
-      var temp_v = await getVoltage();
-      String v = getVoltageReadLookup(int.parse(temp_v)); 
+      var v = await getVoltage();
+      
       setState(() {
         current = c;
         voltage = v;

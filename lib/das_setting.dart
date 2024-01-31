@@ -131,7 +131,7 @@ class _DasSettingState extends State<DasSetting> {
       'label': 'Data Logging Frequency',
       'key': 'log_frequency',
       'value': '',
-      'hint': 'Read Frequency In Seconds (Minimum 2)'
+      'hint': 'Read Frequency In Seconds (Minimum 5)'
     },
     {
       'label': 'Data Logging Path',
@@ -231,8 +231,8 @@ class _DasSettingState extends State<DasSetting> {
                     if (e['key'] == 'log_frequency') {
                       try {
                         var x = int.parse(value);
-                        if (x < 2) {
-                          return 'Please enter value greater than 1';
+                        if (x < 4) {
+                          return 'Please enter value greater than 4';
                         } else {
                           return null;
                         }
