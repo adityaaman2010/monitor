@@ -9,6 +9,7 @@ import 'package:path/path.dart' as Path;
 import 'package:modbus/modbus.dart' as modbus;
 import 'package:flutter/services.dart';
 import 'helper.dart';
+import 'constants.dart';
 
 class OperationWindow extends StatefulWidget {
   const OperationWindow({Key? key}) : super(key: key);
@@ -454,7 +455,8 @@ class _OperationWindowState extends State<OperationWindow> {
         }
       }
       var c = await getCurrent();
-      var v = await getVoltage();
+      var temp_v = await getVoltage();
+      String v = getVoltageReadLookup(int.parse(temp_v)); 
       setState(() {
         current = c;
         voltage = v;
